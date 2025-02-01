@@ -2,44 +2,74 @@ import numpy as np
 from load_data_label import DataLoader  # クラスをインポート
 import tensorflow as tf
 
+import numpy as np
+from load_data_label import DataLoader  # クラスをインポート
+import tensorflow as tf
+
 class DataProcessor:
-    def __init__(self, x_data, y_label, batch_size=64, shuffle=True):
+    def __init__(self, x_data, y_label, batch_size=64, shuffle=True, normalization_method="minmax"):
         """
-        データを TensorFlow Dataset に変換するクラス
+        データを TensorFlow Dataset に変換し、正規化を適用するクラス
 
         Args:
             x_data (numpy.ndarray): 入力データ (形状: [サンプル数, 時系列長, 特徴量])
             y_label (numpy.ndarray): ラベルデータ (形状: [サンプル数, 出力次元数])
             batch_size (int): バッチサイズ
             shuffle (bool): シャッフルするかどうか（デフォルト: True）
+            normalization_method (str): "minmax" or "zscore"（デフォルト: minmax）
         """
-        self.x_data = x_data
-        self.y_label = y_label
         self.batch_size = batch_size
         self.shuffle = shuffle
+        self.normalization_method = normalization_method
+
+        # データの正規化
+        if normalization_method == "minmax":
+            self.x_train, self.x_min, self.x_max = self.minmax_normalize(x_data)
+            self.y_train, self.y_min, self.y_max = self.minmax_normalize(y_label)
+        elif normalization_method == "zscore":
+            self.x_train, self.x_mean, self.x_std = self.zscore_normalize(x_data)
+            self.y_train, self.y_mean, self.y_std = self.zscore_normalize(y_label)
+        else:
+            raise ValueError("Invalid normalization method. Choose 'minmax' or 'zscore'.")
+
+    def minmax_normalize(self, data):
+        """Min-Max 正規化"""
+        min_val = np.min(data, axis=0)
+        max_val = np.max(data, axis=0)
+        normalized = (data - min_val) / (max_val - min_val)
+        return normalized, min_val, max_val
+
+    def zscore_normalize(self, data):
+        """Z-score 標準化"""
+        mean_val = np.mean(data, axis=0)
+        std_val = np.std(data, axis=0)
+        standardized = (data - mean_val) / std_val
+        return standardized, mean_val, std_val
+    
+    def minmax_denormalize(normalized_data, min_val, max_val):
+        """Min-Max 逆正規化"""
+        return normalized_data * (max_val - min_val) + min_val
+
+    def zscore_denormalize(standardized_data, mean_val, std_val):
+        """Z-score 逆標準化"""
+        return standardized_data * std_val + mean_val
+
 
     def get_datasets(self, validation_split=0.2, test_split=0.1):
         """
         データセットをトレーニング、検証、テスト用に分割し、TensorFlow Dataset を返す
-
-        Args:
-            validation_split (float): 検証データの割合
-            test_split (float): テストデータの割合
-        
-        Returns:
-            train_dataset, val_dataset, test_dataset (tf.data.Dataset): 分割されたデータセット
         """
-        total_samples = self.x_data.shape[0]
+        total_samples = self.x_train.shape[0]
         val_size = int(total_samples * validation_split)
         test_size = int(total_samples * test_split)
         train_size = total_samples - val_size - test_size
 
         # データを分割
-        x_train, y_train = self.x_data[:train_size], self.y_label[:train_size]
-        x_val, y_val = self.x_data[train_size:train_size + val_size], self.y_label[train_size:train_size + val_size]
-        x_test, y_test = self.x_data[train_size + val_size:], self.y_label[train_size + val_size:]
+        x_train, y_train = self.x_train[:train_size], self.y_train[:train_size]
+        x_val, y_val = self.x_train[train_size:train_size + val_size], self.y_train[train_size:train_size + val_size]
+        x_test, y_test = self.x_train[train_size + val_size:], self.y_train[train_size + val_size:]
 
-        # データを TensorFlow Dataset に変換
+        # TensorFlow Dataset に変換
         train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
         val_dataset = tf.data.Dataset.from_tensor_slices((x_val, y_val))
         test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
@@ -54,6 +84,7 @@ class DataProcessor:
         test_dataset = test_dataset.batch(self.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
         return train_dataset, val_dataset, test_dataset
+
 # --- ここからデータをロードし，データセットを作成する処理 ---
 if __name__ == "__main__":
     # クラスをインスタンス化してデータをロード

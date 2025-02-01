@@ -86,34 +86,28 @@ def generate_dummy_data(num_samples=1000, time_steps=10, features=6):
     return X, y
 
 if __name__ == "__main__":
-    # データ準備
-    X_train, y_train = generate_dummy_data(num_samples=1000)
-    X_val, y_val = generate_dummy_data(num_samples=200)
+    # データのロード
+    data_loader = DataLoader(data_dir="Data_Label/Gym")
+    x_data, y_label = data_loader.load_data()
 
-    # モデルを構築
-    transformer = build_transformer()
+    # 正規化付きデータセットの作成
+    data_processor = DataProcessor(x_data, y_label, batch_size=32, normalization_method="minmax")  # Min-Max正規化
+    train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     # モデルの学習
-    transformer.fit(
-        X_train, y_train,
-        validation_data=(X_val, y_val),
-        epochs=10,
-        batch_size=32
-    )
+    transformer = build_transformer()
+    transformer.fit(train_dataset, validation_data=val_dataset, epochs=10)
 
-    # モデルの評価
-    test_loss, test_mae = transformer.evaluate(X_val, y_val)
-    print(f"Test Loss: {test_loss}, Test MAE: {test_mae}")
+    # 予測
+    test_iter = iter(test_dataset)
+    x_test_sample, y_test_sample = next(test_iter)
+    predictions_normalized = transformer.predict(x_test_sample)
 
-    # **予測の実行**
-    print("=== モデルによる予測開始 ===")
+    # 逆正規化を適用
+    predictions_original = DataProcessor.minmax_denormalize(predictions_normalized, data_processor.y_min, data_processor.y_max)
+    actual_original = DataProcessor.minmax_denormalize(y_test_sample.numpy(), data_processor.y_min, data_processor.y_max)
 
-    # テストデータから1サンプルを取得
-    x_test_sample = X_val[:5]  
-
-    # 予測を実行
-    predictions = transformer.predict(x_test_sample)
-
-    # 予測結果を表示
-    print("Actual y_test:", y_val[:5])  # 最初の5つのラベル
-    print("Predicted y:", predictions[:5])  # 最初の5つの予測結果
+    # 予測結果の表示（元のスケールに戻したもの）
+    print("=== 予測結果（元のスケール） ===")
+    print("Actual y_test (Original Scale):", actual_original[:5])  
+    print("Predicted y (Original Scale):", predictions_original[:5])  
