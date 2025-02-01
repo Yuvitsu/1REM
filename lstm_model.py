@@ -10,20 +10,21 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
-    def __init__(self, num_units=128, num_layers=2, dropout_rate=0.2):
+    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.1):
         super(LSTMModel, self).__init__()
         self.lstm_layers = []
         
-        # 最初の LSTM 層
-        self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, dropout=dropout_rate))
+        # ✅ 1層目の LSTM
+        self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, activation="tanh"))
 
-        # 中間の LSTM 層（削減）
+        # ✅ 中間の LSTM 層
         for _ in range(num_layers - 2):
-            self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, dropout=dropout_rate))
+            self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, activation="tanh"))
 
-        # 最後の LSTM 層
-        self.lstm_layers.append(layers.LSTM(num_units, return_sequences=False, dropout=dropout_rate))
+        # ✅ 最後の LSTM 層（return_sequences=False）
+        self.lstm_layers.append(layers.LSTM(num_units, return_sequences=False, activation="tanh"))
 
+        # ✅ 出力層
         self.output_layer = layers.Dense(6, activation="linear")
 
     def call(self, inputs, training=False):
@@ -37,8 +38,8 @@ def build_lstm(input_shape):
     model = LSTMModel()
     model.build(input_shape=(None,) + input_shape)
 
-    # ✅ Optimizer を `RMSprop` に変更
-    optimizer = keras.optimizers.RMSprop(learning_rate=0.001, clipnorm=1.0)
+    # ✅ Optimizer を `RMSprop` に変更し、momentum を追加
+    optimizer = keras.optimizers.RMSprop(learning_rate=0.0005, momentum=0.9, clipnorm=1.0)
 
     model.compile(
         optimizer=optimizer,
@@ -54,7 +55,7 @@ if __name__ == "__main__":
     x_data, y_label = data_loader.load_data()
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data, y_label, batch_size=64)
+    data_processor = DataProcessor(x_data, y_label, batch_size=64, shuffle=True)  # ✅ shuffle を追加
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     sample_input_shape = x_data.shape[1:]  # 例: (10, 6)
@@ -65,7 +66,7 @@ if __name__ == "__main__":
 
     print("=== モデルの学習を開始 ===")
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
-    
+
     # ✅ 学習率スケジューリングの調整
     lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=2, min_lr=1e-6)
 
