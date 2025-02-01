@@ -5,23 +5,21 @@ from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 
-# TensorFlow のデバッグメッセージを抑制
+# ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
-    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.2):
+    def __init__(self, num_units=128, num_layers=2, dropout_rate=0.2):
         super(LSTMModel, self).__init__()
         self.lstm_layers = []
         
         # 最初の LSTM 層
         self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, dropout=dropout_rate))
-        self.lstm_layers.append(layers.BatchNormalization())  # ✅ BatchNormalization を追加
 
-        # 中間の LSTM 層
+        # 中間の LSTM 層（削減）
         for _ in range(num_layers - 2):
             self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, dropout=dropout_rate))
-            self.lstm_layers.append(layers.BatchNormalization())  # ✅ BatchNormalization
 
         # 最後の LSTM 層
         self.lstm_layers.append(layers.LSTM(num_units, return_sequences=False, dropout=dropout_rate))
@@ -39,8 +37,8 @@ def build_lstm(input_shape):
     model = LSTMModel()
     model.build(input_shape=(None,) + input_shape)
 
-    # ✅ Optimizer を `AdamW` から `RMSprop` に変更
-    optimizer = keras.optimizers.RMSprop(learning_rate=0.001)
+    # ✅ Optimizer を `RMSprop` に変更
+    optimizer = keras.optimizers.RMSprop(learning_rate=0.001, clipnorm=1.0)
 
     model.compile(
         optimizer=optimizer,
@@ -67,7 +65,9 @@ if __name__ == "__main__":
 
     print("=== モデルの学習を開始 ===")
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
-    lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.5, patience=2, min_lr=1e-5)
+    
+    # ✅ 学習率スケジューリングの調整
+    lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=2, min_lr=1e-6)
 
     lstm_model.fit(
         train_dataset,
