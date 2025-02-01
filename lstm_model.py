@@ -90,5 +90,5 @@ if __name__ == "__main__":
 
     predictions = lstm_model.predict(x_test_sample)
 
-    print("Actual y_test:", y_test_sample.numpy()[:5])
-    print("Predicted y:", predictions[:5])
+    print("Actual y_test:", y_test_sample.numpy()[:100])
+    print("Predicted y:", predictions[:100])
