@@ -73,7 +73,7 @@ if __name__ == "__main__":
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=20,
+        epochs=100,
         callbacks=[early_stopping, lr_scheduler]
     )
 
