@@ -37,6 +37,4 @@ if __name__ == "__main__":
     # データをロード
     x_data, y_label = data_loader.load_data()
 
-    # 必要ならデータを確認
-    print("First 5 samples of x_data:", x_data[:5])  # 最初の5つのサンプル
-    print("First 5 labels of y_label:", y_label[:5])  # 最初の5つのラベル
+    
