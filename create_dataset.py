@@ -3,90 +3,57 @@ from load_data_label import DataLoader  # クラスをインポート
 import tensorflow as tf
 
 class DataProcessor:
-    def __init__(self, x_data, y_label, batch_size=32, seed=42):
+    def __init__(self, x_data, y_label, batch_size=64, shuffle=True):
         """
-        既存の x_data と y_label を受け取り、データセットを分割して TensorFlow Dataset に変換するクラス
+        データを TensorFlow Dataset に変換するクラス
 
         Args:
-            x_data (np.array): 特徴量データ (例: (31726, 10, 6))
-            y_label (np.array): ラベルデータ (例: (31726, 6))
-            batch_size (int): バッチサイズ (デフォルト: 32)
-            seed (int): シャッフル時のシード値 (デフォルト: 42)
+            x_data (numpy.ndarray): 入力データ (形状: [サンプル数, 時系列長, 特徴量])
+            y_label (numpy.ndarray): ラベルデータ (形状: [サンプル数, 出力次元数])
+            batch_size (int): バッチサイズ
+            shuffle (bool): シャッフルするかどうか（デフォルト: True）
         """
         self.x_data = x_data
         self.y_label = y_label
         self.batch_size = batch_size
-        self.seed = seed
-        self.dataset_size = x_data.shape[0]
+        self.shuffle = shuffle
 
-        # デバッグ用出力: 初期データの形状
-        print("=== DataProcessor Initialized ===")
-        print(f"Total dataset size: {self.dataset_size}")
-        print(f"x_data shape: {self.x_data.shape}, y_label shape: {self.y_label.shape}")
-        print(f"Seed value: {self.seed}")
-
-        # データ分割処理
-        self.split_data()
-
-        # TensorFlow Dataset を作成
-        self.create_datasets()
-
-    def split_data(self):
+    def get_datasets(self, validation_split=0.2, test_split=0.1):
         """
-        データセットを 7:2:1 にシャッフル & 分割
+        データセットをトレーニング、検証、テスト用に分割し、TensorFlow Dataset を返す
+
+        Args:
+            validation_split (float): 検証データの割合
+            test_split (float): テストデータの割合
+        
+        Returns:
+            train_dataset, val_dataset, test_dataset (tf.data.Dataset): 分割されたデータセット
         """
-        train_size = int(self.dataset_size * 0.7)  # 70% training
-        val_size = int(self.dataset_size * 0.2)    # 20% validation
-        test_size = self.dataset_size - (train_size + val_size)  # 10% test
+        total_samples = self.x_data.shape[0]
+        val_size = int(total_samples * validation_split)
+        test_size = int(total_samples * test_split)
+        train_size = total_samples - val_size - test_size
 
-        # シャッフル
-        np.random.seed(self.seed)
-        indices = np.random.permutation(self.dataset_size)
+        # データを分割
+        x_train, y_train = self.x_data[:train_size], self.y_label[:train_size]
+        x_val, y_val = self.x_data[train_size:train_size + val_size], self.y_label[train_size:train_size + val_size]
+        x_test, y_test = self.x_data[train_size + val_size:], self.y_label[train_size + val_size:]
 
-        # デバッグ用: シャッフル後の最初の10個のインデックスを表示
-        print("\n=== Shuffling Done ===")
-        print(f"First 10 shuffled indices: {indices[:10]}")
+        # データを TensorFlow Dataset に変換
+        train_dataset = tf.data.Dataset.from_tensor_slices((x_train, y_train))
+        val_dataset = tf.data.Dataset.from_tensor_slices((x_val, y_val))
+        test_dataset = tf.data.Dataset.from_tensor_slices((x_test, y_test))
 
-        # シャッフルしたデータを分割
-        train_indices = indices[:train_size]
-        val_indices = indices[train_size:train_size + val_size]
-        test_indices = indices[train_size + val_size:]
+        # シャッフル（train のみ）
+        if self.shuffle:
+            train_dataset = train_dataset.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
 
-        self.x_train, self.y_train = self.x_data[train_indices], self.y_label[train_indices]
-        self.x_val, self.y_val = self.x_data[val_indices], self.y_label[val_indices]
-        self.x_test, self.y_test = self.x_data[test_indices], self.y_label[test_indices]
+        # バッチ化
+        train_dataset = train_dataset.batch(self.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+        val_dataset = val_dataset.batch(self.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
+        test_dataset = test_dataset.batch(self.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
 
-        # デバッグ用出力: 分割後のデータの形状
-        print("\n=== Data Splitting Completed ===")
-        print(f"Training dataset size: {len(self.x_train)}")
-        print(f"Validation dataset size: {len(self.x_val)}")
-        print(f"Test dataset size: {len(self.x_test)}")
-
-        # デバッグ用出力: 最初の1サンプルを表示
-        print(f"\nFirst training sample x:\n{self.x_train[0]}")
-        print(f"First training sample y:\n{self.y_train[0]}")
-
-    def create_datasets(self):
-        """
-        NumPy 配列を TensorFlow Dataset に変換
-        """
-        self.train_dataset = tf.data.Dataset.from_tensor_slices((self.x_train, self.y_train)).shuffle(1000).batch(self.batch_size)
-        self.val_dataset = tf.data.Dataset.from_tensor_slices((self.x_val, self.y_val)).batch(self.batch_size)
-        self.test_dataset = tf.data.Dataset.from_tensor_slices((self.x_test, self.y_test)).batch(self.batch_size)
-
-        # デバッグ用出力: Dataset の情報
-        print("\n=== TensorFlow Dataset Created ===")
-        print(f"Train dataset: {self.train_dataset}")
-        print(f"Validation dataset: {self.val_dataset}")
-        print(f"Test dataset: {self.test_dataset}")
-
-    def get_datasets(self):
-        """
-        Dataset を取得するメソッド
-        """
-        return self.train_dataset, self.val_dataset, self.test_dataset
-
-
+        return train_dataset, val_dataset, test_dataset
 # --- ここからデータをロードし，データセットを作成する処理 ---
 if __name__ == "__main__":
     # クラスをインスタンス化してデータをロード

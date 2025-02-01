@@ -21,7 +21,7 @@ class LSTMModel(keras.Model):
         for _ in range(num_layers - 2):
             self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, activation="tanh"))
 
-        # ✅ 最後の LSTM 層
+        # ✅ 最後の LSTM 層（return_sequences=False）
         self.lstm_layers.append(layers.LSTM(num_units, return_sequences=False, activation="tanh"))
 
         # ✅ 出力層
@@ -38,7 +38,7 @@ def build_lstm(input_shape):
     model = LSTMModel()
     model.build(input_shape=(None,) + input_shape)
 
-    # ✅ Optimizer を RMSprop に設定
+    # ✅ Optimizer を `RMSprop` に変更し、momentum を追加
     optimizer = keras.optimizers.RMSprop(learning_rate=0.0005, momentum=0.9, clipnorm=1.0)
 
     model.compile(
@@ -55,11 +55,8 @@ if __name__ == "__main__":
     x_data, y_label = data_loader.load_data()
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data, y_label, batch_size=64)  # ✅ shuffle を削除
+    data_processor = DataProcessor(x_data, y_label, batch_size=64)  # ✅ `shuffle` を削除
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
-
-    # ✅ トレーニングデータをシャッフル
-    train_dataset = train_dataset.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
 
     sample_input_shape = x_data.shape[1:]  # 例: (10, 6)
 
@@ -70,6 +67,7 @@ if __name__ == "__main__":
     print("=== モデルの学習を開始 ===")
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
 
+    # ✅ 学習率スケジューリングの調整
     lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=2, min_lr=1e-6)
 
     lstm_model.fit(
