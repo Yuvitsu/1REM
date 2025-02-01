@@ -31,8 +31,9 @@ class LSTMModel(keras.Model):
         return self.output_layer(x)
 
 # --- モデルのコンパイル ---
-def build_lstm():
+def build_lstm(input_shape):
     model = LSTMModel()
+    model.build(input_shape=(None,) + input_shape)  # 🔹 ここでモデルをビルド
     optimizer = keras.optimizers.AdamW(learning_rate=0.001, weight_decay=1e-4)
     model.compile(
         optimizer=optimizer,
@@ -53,9 +54,12 @@ if __name__ == "__main__":
     data_processor = DataProcessor(x_data, y_label, batch_size=64)
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
+    # 🔹 ここで input_shape を取得
+    sample_input_shape = x_data.shape[1:]  # 例: (10, 6)
+
     print("=== LSTM モデルの構築 ===")
-    lstm_model = build_lstm()
-    lstm_model.summary()
+    lstm_model = build_lstm(sample_input_shape)  # 🔹 修正: 形状を渡してビルド
+    lstm_model.summary()  # ✅ これでエラーなく実行できる
 
     print("=== モデルの学習を開始 ===")
     early_stopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
