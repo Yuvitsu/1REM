@@ -4,7 +4,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
-
+import numpy as np
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -39,7 +39,7 @@ def build_lstm(input_shape):
     model.build(input_shape=(None,) + input_shape)
 
     # ✅ Optimizer を `RMSprop` に変更し、momentum を追加
-    optimizer = keras.optimizers.RMSprop(learning_rate=0.0005, momentum=0.9, clipnorm=1.0)
+    optimizer = keras.optimizers.RMSprop(learning_rate=0.0001, momentum=0.9, clipnorm=1.0)
 
     model.compile(
         optimizer=optimizer,
@@ -53,6 +53,8 @@ if __name__ == "__main__":
     print("=== データの作成を開始 ===")
     data_loader = DataLoader(data_dir="Data_Label/Gym")
     x_data, y_label = data_loader.load_data()
+    print(np.min(x_data), np.max(x_data))
+    print(np.min(y_label), np.max(y_label))
 
     print("=== データセットの作成を開始 ===")
     data_processor = DataProcessor(x_data, y_label, batch_size=64)  # ✅ `shuffle` を削除
