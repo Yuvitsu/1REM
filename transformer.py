@@ -3,6 +3,7 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
+import numpy as np
 
 # --- 位置エンコーディング ---
 class PositionalEncoding(layers.Layer):

@@ -46,7 +46,7 @@ class DataProcessor:
 
         # シャッフル（train のみ）
         if self.shuffle:
-            train_dataset = train_dataset.shuffle(buffer_size=1000, reshuffle_each_iteration=True)
+            train_dataset = train_dataset.shuffle(buffer_size=5000, reshuffle_each_iteration=True)
 
         # バッチ化
         train_dataset = train_dataset.batch(self.batch_size).prefetch(tf.data.experimental.AUTOTUNE)
