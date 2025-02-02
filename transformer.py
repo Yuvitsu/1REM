@@ -14,13 +14,19 @@ class PositionalEncoding(layers.Layer):
         self.pos_encoding = self._get_positional_encoding()
 
     def _get_positional_encoding(self):
-        positions = np.arange(self.sequence_length)[:, np.newaxis]
-        i = np.arange(self.d_model)[np.newaxis, :]
-        angles = positions / np.power(10000, (2 * (i // 2)) / np.float32(self.d_model))
-        pos_encoding = np.zeros((self.sequence_length, self.d_model))
-        pos_encoding[:, 0::2] = np.sin(angles[:, 0::2])
-        pos_encoding[:, 1::2] = np.cos(angles[:, 1::2])
-        return tf.cast(pos_encoding[np.newaxis, ...], dtype=tf.float32)
+        positions = tf.range(self.sequence_length, dtype=tf.float32)[:, tf.newaxis]
+        i = tf.range(self.d_model, dtype=tf.float32)[tf.newaxis, :]
+        angles = positions / tf.pow(10000.0, (2 * (i // 2)) / tf.cast(self.d_model, tf.float32))
+
+        pos_encoding = tf.zeros((self.sequence_length, self.d_model), dtype=tf.float32)
+        pos_encoding = tf.tensor_scatter_nd_update(
+            pos_encoding, tf.where(tf.range(self.d_model) % 2 == 0), tf.sin(angles[:, ::2])
+        )
+        pos_encoding = tf.tensor_scatter_nd_update(
+            pos_encoding, tf.where(tf.range(self.d_model) % 2 == 1), tf.cos(angles[:, 1::2])
+        )
+
+        return pos_encoding[tf.newaxis, ...]
 
     def call(self, x):
         return x + self.pos_encoding
@@ -59,7 +65,7 @@ class TimeSeriesTransformer(keras.Model):
         x = self.pos_encoding(x)  # 位置エンコーディング追加
 
         for i in range(len(self.encoder_layers)):
-            attn_output = self.encoder_layers[i](x, x, x)
+            attn_output = self.encoder_layers[i](query=x, value=x, key=x)
             attn_output = self.dropout_layers[i](attn_output, training=training)
             x = self.norm_layers[i](x + attn_output)
 
@@ -101,7 +107,7 @@ if __name__ == "__main__":
     # 予測
     test_iter = iter(test_dataset)
     x_test_sample, y_test_sample = next(test_iter)
-    predictions_normalized = transformer.predict(x_test_sample)
+    predictions_normalized = transformer.predict(x_test_sample).numpy()
 
     # 逆正規化を適用
     predictions_original = DataProcessor.minmax_denormalize(predictions_normalized, data_processor.y_min, data_processor.y_max)
