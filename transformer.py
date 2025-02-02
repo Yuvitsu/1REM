@@ -96,7 +96,7 @@ if __name__ == "__main__":
 
     # モデルの学習
     transformer = build_transformer()
-    transformer.fit(train_dataset, validation_data=val_dataset, epochs=10)
+    transformer.fit(train_dataset, validation_data=val_dataset, epochs=100)
 
     # 予測
     test_iter = iter(test_dataset)
