@@ -96,7 +96,21 @@ if __name__ == "__main__":
 
     # モデルの学習
     transformer = build_transformer()
-    transformer.fit(train_dataset, validation_data=val_dataset, epochs=100)
+    history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100)
+
+    # テストデータの損失を計算（1回だけ）
+    test_loss, test_mae = transformer.evaluate(test_dataset)
+
+    # 損失データを保存
+    loss_log_path = "loss_log.txt"
+    with open(loss_log_path, "w") as f:
+        f.write("Epoch\tTrain_Loss\tVal_Loss\tTest_Loss\n")
+        for epoch in range(len(history.history['loss'])):
+            train_loss = history.history['loss'][epoch]
+            val_loss = history.history['val_loss'][epoch]
+            f.write(f"{epoch+1}\t{train_loss:.6f}\t{val_loss:.6f}\t{test_loss:.6f}\n")
+
+    print(f"\nLoss log saved to {loss_log_path}")
 
     # 予測
     test_iter = iter(test_dataset)
@@ -108,6 +122,6 @@ if __name__ == "__main__":
     actual_original = DataProcessor.minmax_denormalize(y_test_sample.numpy(), data_processor.y_min, data_processor.y_max)
 
     # 予測結果の表示（元のスケールに戻したもの）
-    print("=== 予測結果（元のスケール） ===")
+    print("\n=== 予測結果（元のスケール） ===")
     print("Actual y_test (Original Scale):", actual_original[:5])  
     print("Predicted y (Original Scale):", predictions_original[:5])  
