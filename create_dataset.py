@@ -88,9 +88,10 @@ class DataProcessor:
         """Z-score 標準化（学習データの統計値を使用）"""
         return (data - mean_val) / std_val
 
-    def minmax_denormalize(self, normalized_data, min_val, max_val):
-        """Min-Max 逆正規化"""
-        return normalized_data * (max_val - min_val) + min_val
+    @staticmethod
+    def minmax_denormalize(normalized_data, y_min, y_max):
+        return normalized_data * (y_max - y_min) + y_min
+
 
     def zscore_denormalize(self, standardized_data, mean_val, std_val):
         """Z-score 逆標準化"""
