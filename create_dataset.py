@@ -1,11 +1,11 @@
 import numpy as np
-from load_data_label import DataLoader  # クラスをインポート
+from load_data_label import DataLoader  # データローダークラスをインポート
 import tensorflow as tf
 
 class DataProcessor:
     def __init__(self, x_data, y_label, batch_size=64, shuffle=True, normalization_method="minmax", validation_split=0.2, test_split=0.1):
         """
-        データを TensorFlow Dataset に変換し、学習データの統計量を使って正規化を適用するクラス
+        データを TensorFlow Dataset に変換し、データ全体の統計量を使って正規化を適用するクラス。
 
         Args:
             x_data (numpy.ndarray): 入力データ (形状: [サンプル数, 時系列長, 特徴量])
@@ -64,38 +64,36 @@ class DataProcessor:
             raise ValueError("Invalid normalization method. Choose 'minmax' or 'zscore'.")
 
     def minmax_normalize(self, data):
-        """Min-Max 正規化（学習データ用）"""
-        min_val = np.min(data)
-        max_val = np.max(data)
+        """データ全体の最小値・最大値を使った Min-Max 正規化（学習データ用）"""
+        min_val = np.min(data)  # データ全体の最小値
+        max_val = np.max(data)  # データ全体の最大値
         range_val = max_val - min_val
-        range_val[range_val == 0] = 1  # ゼロ割り防止
+        if range_val == 0:  # ゼロ割り防止
+            range_val = 1
         normalized = (data - min_val) / range_val
         return normalized, min_val, max_val
 
     def apply_minmax(self, data, min_val, max_val):
-        """Min-Max 正規化（学習データの統計値を使用）"""
-        return (data - min_val) / (max_val - min_val)
+        """学習データの統計値を使って Min-Max 正規化を適用"""
+        range_val = max_val - min_val
+        if range_val == 0:  # ゼロ割り防止
+            range_val = 1
+        return (data - min_val) / range_val
 
     def zscore_normalize(self, data):
-        """Z-score 標準化（学習データ用）"""
-        mean_val = np.mean(data, axis=0)
-        std_val = np.std(data, axis=0)
-        std_val[std_val == 0] = 1  # ゼロ割り防止
+        """データ全体の平均・標準偏差を使った Z-score 正規化（学習データ用）"""
+        mean_val = np.mean(data)  # データ全体の平均
+        std_val = np.std(data)  # データ全体の標準偏差
+        if std_val == 0:  # ゼロ割り防止
+            std_val = 1
         standardized = (data - mean_val) / std_val
         return standardized, mean_val, std_val
 
     def apply_zscore(self, data, mean_val, std_val):
-        """Z-score 標準化（学習データの統計値を使用）"""
+        """学習データの統計値を使って Z-score 正規化を適用"""
+        if std_val == 0:  # ゼロ割り防止
+            std_val = 1
         return (data - mean_val) / std_val
-
-    @staticmethod
-    def minmax_denormalize(normalized_data, y_min, y_max):
-        return normalized_data * (y_max - y_min) + y_min
-
-
-    def zscore_denormalize(self, standardized_data, mean_val, std_val):
-        """Z-score 逆標準化"""
-        return standardized_data * std_val + mean_val
 
     def get_datasets(self):
         """
@@ -124,7 +122,7 @@ if __name__ == "__main__":
     x_data, y_label = data_loader.load_data()
 
     # DataProcessor をインスタンス化してデータセットを作成
-    data_processor = DataProcessor(x_data, y_label, batch_size=32)
+    data_processor = DataProcessor(x_data, y_label, batch_size=32, normalization_method="minmax")  # Min-Max 正規化
 
     # データセットを取得
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
