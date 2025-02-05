@@ -65,8 +65,8 @@ class DataProcessor:
 
     def minmax_normalize(self, data):
         """Min-Max 正規化（学習データ用）"""
-        min_val = np.min(data, axis=0)
-        max_val = np.max(data, axis=0)
+        min_val = np.min(data)
+        max_val = np.max(data)
         range_val = max_val - min_val
         range_val[range_val == 0] = 1  # ゼロ割り防止
         normalized = (data - min_val) / range_val
