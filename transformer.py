@@ -89,6 +89,8 @@ if __name__ == "__main__":
     data_loader = DataLoader(data_dir="Data_Label/Gym")
     x_data, y_label = data_loader.load_data()
 
+
+
     # 正規化付きデータセットの作成
     data_processor = DataProcessor(x_data, y_label, batch_size=32, normalization_method="minmax")  # Min-Max正規化
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
@@ -118,6 +120,13 @@ if __name__ == "__main__":
     # 逆正規化
     predictions_original = DataProcessor.minmax_denormalize(predictions_normalized, data_processor.y_min, data_processor.y_max)
     actual_original = DataProcessor.minmax_denormalize(y_test_sample.numpy(), data_processor.y_min, data_processor.y_max)
+    
+    # データの最大値と最小値を表示
+    print("x_data max:", data_processor.x_max)
+    print("x_data min:", data_processor.x_min)
+    print("y_label max:", data_processor.y_max)
+    print("y_label min:", data_processor.y_min)
+
 
     # 予測結果の表示
     print("\n=== 予測結果（元のスケール） ===")
