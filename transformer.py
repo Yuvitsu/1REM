@@ -1,9 +1,17 @@
+import os
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
+from loss_logger import LossLogger
 import numpy as np
+
+# ✅ TensorFlow のデバッグメッセージを抑制
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+# ✅ LossLogger のインスタンスを作成
+loss_logger = LossLogger(train_log="train_loss.txt", val_log="val_loss.txt", test_log="test_loss.txt")
 
 # --- 位置エンコーディング ---
 class PositionalEncoding(layers.Layer):
@@ -22,106 +30,60 @@ class PositionalEncoding(layers.Layer):
         pos_encoding[:, 1::2] = np.cos(angles[:, 1::2])
         return tf.cast(pos_encoding[np.newaxis, ...], dtype=tf.float32)
 
-    def call(self, x):
-        return x + self.pos_encoding
+    def call(self, inputs):
+        return inputs + self.pos_encoding[:, :tf.shape(inputs)[1], :]
 
 # --- Transformer モデル ---
-class TimeSeriesTransformer(keras.Model):
-    def __init__(self, num_layers=2, d_model=128, num_heads=4, dff=512, dropout_rate=0.1, output_steps=6):
-        super(TimeSeriesTransformer, self).__init__()
-
-        # 入力変換
-        self.input_layer = layers.Dense(d_model)
-
-        # 位置エンコーディング
-        self.pos_encoding = PositionalEncoding(sequence_length=10, d_model=d_model)
-
-        # Transformer エンコーダ層
+class TransformerModel(keras.Model):
+    def __init__(self, num_layers=3, d_model=128, num_heads=4, dff=512, dropout_rate=0.1):
+        super(TransformerModel, self).__init__()
+        self.embedding = layers.Embedding(input_dim=10000, output_dim=d_model)
+        self.pos_encoding = PositionalEncoding(sequence_length=100, d_model=d_model)
         self.encoder_layers = [
-            layers.MultiHeadAttention(num_heads=num_heads, key_dim=d_model) for _ in range(num_layers)
+            layers.MultiHeadAttention(num_heads=num_heads, key_dim=d_model)
+            for _ in range(num_layers)
         ]
-        self.dropout_layers = [layers.Dropout(dropout_rate) for _ in range(num_layers)]
-        self.norm_layers = [layers.LayerNormalization(epsilon=1e-6) for _ in range(num_layers)]
-
-        # フィードフォワードネットワーク
-        self.ffn_layers = [
-            keras.Sequential([
-                layers.Dense(dff, activation="relu"),
-                layers.Dense(d_model)
-            ]) for _ in range(num_layers)
+        self.dense_layers = [
+            layers.Dense(dff, activation="relu") for _ in range(num_layers)
         ]
+        self.final_layer = layers.Dense(1)
 
-        # 出力層
-        self.output_layer = layers.Dense(output_steps, activation="linear")
+    def call(self, inputs):
+        x = self.embedding(inputs)
+        x = self.pos_encoding(x)
+        for mha, dense in zip(self.encoder_layers, self.dense_layers):
+            attn_output = mha(x, x)
+            x = layers.LayerNormalization()(x + attn_output)
+            dense_output = dense(x)
+            x = layers.LayerNormalization()(x + dense_output)
+        return self.final_layer(x)
 
-    def call(self, inputs, training=False):
-        x = self.input_layer(inputs)  # 次元変換
-        x = self.pos_encoding(x)  # 位置エンコーディング追加
+# --- モデルのトレーニング ---
+def train_model():
+    # ✅ データの準備
+    data_loader = DataLoader()
+    train_data, val_data, test_data = data_loader.load_data()
 
-        for i in range(len(self.encoder_layers)):
-            attn_output = self.encoder_layers[i](x, x, x)
-            attn_output = self.dropout_layers[i](attn_output, training=training)
-            x = self.norm_layers[i](x + attn_output)
-
-            ffn_output = self.ffn_layers[i](x)
-            ffn_output = self.dropout_layers[i](ffn_output, training=training)
-            x = self.norm_layers[i](x + ffn_output)
-
-        return self.output_layer(x[:, -1, :])  # 最後のタイムステップを出力
-
-# --- モデルのコンパイル ---
-def build_transformer():
-    model = TimeSeriesTransformer()
-    model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
-        loss="mse",
-        metrics=["mae"]
+    # ✅ モデルの構築
+    model = TransformerModel()
+    model.compile(optimizer="adam", loss="mse", metrics=["mae"])
+    
+    # ✅ コールバックとして損失を記録
+    class LossHistoryCallback(keras.callbacks.Callback):
+        def on_epoch_end(self, epoch, logs=None):
+            loss_logger.log_train_loss(logs['loss'])
+            loss_logger.log_val_loss(logs['val_loss'])
+    
+    # ✅ トレーニング
+    model.fit(
+        train_data,
+        epochs=20,
+        validation_data=val_data,
+        callbacks=[LossHistoryCallback()]
     )
-    return model
-
-# --- データの作成 ---
-def generate_dummy_data(num_samples=1000, time_steps=10, features=6):
-    X = np.random.rand(num_samples, time_steps, features).astype(np.float32)
-    y = np.random.rand(num_samples, features).astype(np.float32)  # 次の6つの値を予測
-    return X, y
+    
+    # ✅ モデルの保存
+    model.save("transformer_model.h5")
 
 if __name__ == "__main__":
-    # データのロード
-    data_loader = DataLoader(data_dir="Data_Label/Gym")
-    x_data, y_label = data_loader.load_data()
-
-    # 正規化付きデータセットの作成
-    data_processor = DataProcessor(x_data, y_label, batch_size=32, normalization_method="minmax")  # Min-Max正規化
-    train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
-
-    # モデルの学習
-    transformer = build_transformer()
-    history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100)
-
-    # テストデータの損失を計算（1回だけ）
-    test_loss, test_mae = transformer.evaluate(test_dataset)
-
-    # 損失データを保存
-    loss_log_path = "loss_log.txt"
-    with open(loss_log_path, "w") as f:
-        f.write("Epoch\tTrain_Loss\tVal_Loss\tTest_Loss\n")
-        for epoch in range(len(history.history['loss'])):
-            train_loss = history.history['loss'][epoch]
-            val_loss = history.history['val_loss'][epoch]
-            f.write(f"{epoch+1}\t{train_loss:.6f}\t{val_loss:.6f}\t{test_loss:.6f}\n")
-
-    print(f"\nLoss log saved to {loss_log_path}")
-
-    # 予測
-    test_iter = iter(test_dataset)
-    x_test_sample, y_test_sample = next(test_iter)
-    predictions_normalized = transformer.predict(x_test_sample)
-
-    # 逆正規化を適用
-    predictions_original = DataProcessor.minmax_denormalize(predictions_normalized, data_processor.y_min, data_processor.y_max)
-    actual_original = DataProcessor.minmax_denormalize(y_test_sample.numpy(), data_processor.y_min, data_processor.y_max)
-
-    # 予測結果の表示（元のスケールに戻したもの）
-    print("\n=== 予測結果（元のスケール） ===")
-    print("Actual y_test (Original Scale):", actual_original[:5])  
-    print("Predicted y (Original Scale):", predictions_original[:5])  
+    train_model()
