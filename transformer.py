@@ -104,7 +104,7 @@ if __name__ == "__main__":
             loss_logger.log_val_loss(logs.get("val_loss", float("nan")))
     
     # ✅ 学習
-    history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[LossHistoryCallback()])
+    history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[loss_logger])
     
     # ✅ テストデータの損失記録
     test_loss, test_mae = transformer.evaluate(test_dataset)
