@@ -11,7 +11,7 @@ import numpy as np
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
 # ✅ LossLogger のインスタンスを作成
-loss_logger = LossLogger(train_log="train_loss.txt", val_log="val_loss.txt", test_log="test_loss.txt")
+loss_logger = LossLogger(model_name="lstm_model")
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
