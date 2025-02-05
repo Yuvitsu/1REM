@@ -104,4 +104,4 @@ if __name__ == "__main__":
     test_loss, test_mse = lstm_model.evaluate(test_dataset)
 
     # ✅ LossLogger を使って Test Loss を記録
-    loss_logger.save_test_loss(test_loss, test_mse)
+    loss_logger.save_test_loss(test_loss)  # 修正：MSE のみを保存
