@@ -10,8 +10,8 @@ import numpy as np
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-# ✅ LossLogger のインスタンスを作成
-loss_logger = LossLogger(train_log="train_loss.txt", val_log="val_loss.txt", test_log="test_loss.txt")
+# ✅ LossLogger のインスタンスを作成（ディレクトリごとに保存可能）
+loss_logger = LossLogger(model_name="lstm_model")
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
@@ -85,8 +85,8 @@ if __name__ == "__main__":
     )
 
     print("=== モデルの評価 ===")
-    test_loss, test_mse = lstm_model.evaluate(test_dataset)
-    print(f"Test Loss: {test_loss}, Test MSE: {test_mse}")
+    test_loss, _ = lstm_model.evaluate(test_dataset)
+    print(f"Test Loss: {test_loss}")
 
     print("=== モデルの保存 ===")
     lstm_model.save("lstm_model", save_format="tf")
@@ -101,7 +101,7 @@ if __name__ == "__main__":
     print("Predicted y:", predictions[:100])
 
     # ✅ モデルの評価（テストデータの Loss を保存）
-    test_loss, test_mse = lstm_model.evaluate(test_dataset)
+    test_loss, _ = lstm_model.evaluate(test_dataset)
 
-    # ✅ LossLogger を使って Test Loss を記録
-    loss_logger.save_test_loss(test_loss, test_mse)
+    # ✅ LossLogger を使って Test Loss を記録（MSE のみ）
+    loss_logger.save_test_loss(test_loss)
