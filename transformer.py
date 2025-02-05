@@ -79,7 +79,7 @@ def build_transformer():
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.001),
         loss="mse",
-        metrics=["mae"]
+        metrics=["mse"]
     )
     return model
 
@@ -107,8 +107,8 @@ if __name__ == "__main__":
     history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[loss_logger])
     
     # ✅ テストデータの損失記録（MSE のみを保存）
-    test_loss, test_mae = transformer.evaluate(test_dataset)
-    loss_logger.save_test_loss(test_loss,test_mae)  # MAE を削除し、MSE のみを保存
+    test_loss, test_mse = transformer.evaluate(test_dataset)
+    loss_logger.save_test_loss(test_loss,test_mse)  # MAE を削除し、MSE のみを保存
     
     # ✅ 予測処理
     test_iter = iter(test_dataset)
