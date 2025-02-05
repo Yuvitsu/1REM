@@ -15,7 +15,7 @@ loss_logger = LossLogger(model_name="lstm_model")
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
-    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.1):
+    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.001):
         super(LSTMModel, self).__init__()
         self.lstm_layers = []
 
