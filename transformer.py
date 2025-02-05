@@ -6,8 +6,8 @@ from create_dataset import DataProcessor
 from loss_logger import LossLogger
 import numpy as np
 
-# ✅ LossLogger のインスタンスを作成
-loss_logger = LossLogger(train_log="train_loss.txt", val_log="val_loss.txt", test_log="test_loss.txt")
+# ✅ LossLogger のインスタンスを作成（ディレクトリごとに保存可能）
+loss_logger = LossLogger(model_name="transformer_model")
 
 # --- 位置エンコーディング ---
 class PositionalEncoding(layers.Layer):
@@ -108,7 +108,7 @@ if __name__ == "__main__":
     
     # ✅ テストデータの損失記録（MSE のみを保存）
     test_loss, test_mse = transformer.evaluate(test_dataset)
-    loss_logger.save_test_loss(test_loss,test_mse)  # MAE を削除し、MSE のみを保存
+    loss_logger.save_test_loss(test_loss)  # 修正：MSE のみを保存
     
     # ✅ 予測処理
     test_iter = iter(test_dataset)
