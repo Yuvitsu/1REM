@@ -99,15 +99,16 @@ if __name__ == "__main__":
     # ✅ コールバックとして損失を記録
     class LossHistoryCallback(keras.callbacks.Callback):
         def on_epoch_end(self, epoch, logs=None):
-            loss_logger.log_train_loss(logs['loss'])
-            loss_logger.log_val_loss(logs['val_loss'])
+            logs = logs or {}
+            loss_logger.log_loss("train", logs.get("loss", float("nan")))
+            loss_logger.log_loss("val", logs.get("val_loss", float("nan")))
     
     # ✅ 学習
     history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[LossHistoryCallback()])
     
     # ✅ テストデータの損失記録
     test_loss, test_mae = transformer.evaluate(test_dataset)
-    loss_logger.log_test_loss(test_loss, test_mae)
+    loss_logger.log_loss("test", test_loss)
     
     # ✅ 予測処理
     test_iter = iter(test_dataset)
