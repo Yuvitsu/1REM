@@ -106,9 +106,9 @@ if __name__ == "__main__":
     # ✅ 学習
     history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[loss_logger])
     
-    # ✅ テストデータの損失記録
+    # ✅ テストデータの損失記録（MSE のみを保存）
     test_loss, test_mae = transformer.evaluate(test_dataset)
-    loss_logger.log_test_loss(test_loss, test_mae)
+    loss_logger.save_test_loss(test_loss)  # MAE を削除し、MSE のみを保存
     
     # ✅ 予測処理
     test_iter = iter(test_dataset)
