@@ -86,7 +86,10 @@ def build_transformer():
 # --- モデルの学習と損失の記録 ---
 if __name__ == "__main__":
     # データのロード
-    data_loader = DataLoader(data_dir="Data_Label/Gym")
+    #data_loader = DataLoader(data_dir="Data_Label/Gym")
+    # print("Data_Label/Gym")
+    data_loader = DataLoader(data_dir="Data_Label/E420") # E420データセットの時はこれ
+    print("Data_Label/E420")
     x_data, y_label = data_loader.load_data()
 
 
