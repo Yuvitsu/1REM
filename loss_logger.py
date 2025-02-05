@@ -1,12 +1,16 @@
+import os
 import tensorflow as tf
 
 # ✅ Train Loss, Validation Loss, Test Loss を個別に保存するコールバック
 class LossLogger(tf.keras.callbacks.Callback):
-    def __init__(self, train_log="train_loss.txt", val_log="val_loss.txt", test_log="test_loss.txt"):
+    def __init__(self, model_name="default_model", base_log_dir="logs"):
         super().__init__()
-        self.train_log = train_log
-        self.val_log = val_log
-        self.test_log = test_log
+        self.log_dir = os.path.join(base_log_dir, model_name)  # 指定されたディレクトリにログを保存
+        os.makedirs(self.log_dir, exist_ok=True)  # ディレクトリを作成
+
+        self.train_log = os.path.join(self.log_dir, "train_loss.txt")
+        self.val_log = os.path.join(self.log_dir, "val_loss.txt")
+        self.test_log = os.path.join(self.log_dir, "test_loss.txt")
 
         # 各ファイルの初期化（ヘッダーを書き込む）
         with open(self.train_log, "w") as f:
@@ -14,7 +18,7 @@ class LossLogger(tf.keras.callbacks.Callback):
         with open(self.val_log, "w") as f:
             f.write("Epoch,Val Loss\n")
         with open(self.test_log, "w") as f:
-            f.write("Test Loss,Test MAE\n")  # Test のヘッダー
+            f.write("Test Loss\n")  # Test のヘッダー（MAE を削除）
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}
@@ -29,7 +33,7 @@ class LossLogger(tf.keras.callbacks.Callback):
         with open(self.val_log, "a") as f:
             f.write(f"{epoch+1},{val_loss}\n")
 
-    def save_test_loss(self, test_loss, test_mae):
+    def save_test_loss(self, test_loss):
         """テストデータの Loss をファイルに保存"""
         with open(self.test_log, "a") as f:
-            f.write(f"{test_loss},{test_mae}\n")
+            f.write(f"{test_loss}\n")
