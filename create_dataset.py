@@ -95,6 +95,16 @@ class DataProcessor:
             std_val = 1
         return (data - mean_val) / std_val
 
+    @staticmethod
+    def minmax_denormalize(normalized_data, y_min, y_max):
+        """Min-Max 正規化を元のスケールに戻す"""
+        return normalized_data * (y_max - y_min) + y_min
+
+    @staticmethod
+    def zscore_denormalize(standardized_data, mean_val, std_val):
+        """Z-score 標準化を元のスケールに戻す"""
+        return standardized_data * std_val + mean_val
+
     def get_datasets(self):
         """
         TensorFlow Dataset を作成し、トレーニング、検証、テストデータを返す
