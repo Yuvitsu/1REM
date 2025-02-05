@@ -72,7 +72,6 @@ if __name__ == "__main__":
     lstm_model.summary()
 
     print("=== モデルの学習を開始 ===")
-    early_stopping = tf.keras.callbacks.EarlyStopping(monitor="val_loss", patience=3, restore_best_weights=True)
 
     # ✅ 学習率スケジューリングの調整
     lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=2, min_lr=1e-6)
@@ -81,7 +80,7 @@ if __name__ == "__main__":
         train_dataset,
         validation_data=val_dataset,
         epochs=100,
-        callbacks=[early_stopping, lr_scheduler, loss_logger]
+        callbacks=[lr_scheduler, loss_logger]  # ✅ EarlyStopping を削除
     )
 
     print("=== モデルの評価 ===")
