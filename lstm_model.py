@@ -4,16 +4,21 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
+from loss_logger import LossLogger
 import numpy as np
+
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+# ✅ LossLogger のインスタンスを作成
+loss_logger = LossLogger(train_log="train_loss.txt", val_log="val_loss.txt", test_log="test_loss.txt")
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
     def __init__(self, num_units=128, num_layers=3, dropout_rate=0.1):
         super(LSTMModel, self).__init__()
         self.lstm_layers = []
-        
+
         # ✅ 1層目の LSTM
         self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, activation="tanh"))
 
@@ -43,8 +48,8 @@ def build_lstm(input_shape):
 
     model.compile(
         optimizer=optimizer,
-        loss="mse",
-        metrics=["mae"]
+        loss="mse",  # ✅ 損失関数は MSE
+        metrics=["mse"]  # ✅ 評価指標も MSE
     )
     return model
 
@@ -76,12 +81,12 @@ if __name__ == "__main__":
         train_dataset,
         validation_data=val_dataset,
         epochs=100,
-        callbacks=[early_stopping, lr_scheduler]
+        callbacks=[early_stopping, lr_scheduler, loss_logger]
     )
 
     print("=== モデルの評価 ===")
-    test_loss, test_mae = lstm_model.evaluate(test_dataset)
-    print(f"Test Loss: {test_loss}, Test MAE: {test_mae}")
+    test_loss, test_mse = lstm_model.evaluate(test_dataset)
+    print(f"Test Loss: {test_loss}, Test MSE: {test_mse}")
 
     print("=== モデルの保存 ===")
     lstm_model.save("lstm_model", save_format="tf")
@@ -94,3 +99,9 @@ if __name__ == "__main__":
 
     print("Actual y_test:", y_test_sample.numpy()[:100])
     print("Predicted y:", predictions[:100])
+
+    # ✅ モデルの評価（テストデータの Loss を保存）
+    test_loss, test_mse = lstm_model.evaluate(test_dataset)
+
+    # ✅ LossLogger を使って Test Loss を記録
+    loss_logger.save_test_loss(test_loss, test_mse)
