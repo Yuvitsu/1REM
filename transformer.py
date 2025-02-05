@@ -108,7 +108,7 @@ if __name__ == "__main__":
     
     # ✅ テストデータの損失記録（MSE のみを保存）
     test_loss, test_mae = transformer.evaluate(test_dataset)
-    loss_logger.save_test_loss(test_loss)  # MAE を削除し、MSE のみを保存
+    loss_logger.save_test_loss(test_loss,test_mae)  # MAE を削除し、MSE のみを保存
     
     # ✅ 予測処理
     test_iter = iter(test_dataset)
