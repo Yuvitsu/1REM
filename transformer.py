@@ -61,7 +61,7 @@ class TransformerModel(keras.Model):
 # --- モデルのトレーニング ---
 def train_model():
     # ✅ データの準備
-    data_loader = DataLoader()
+    data_loader = DataLoader(data_dir="Data_Label/Gym")
     train_data, val_data, test_data = data_loader.load_data()
 
     # ✅ モデルの構築
