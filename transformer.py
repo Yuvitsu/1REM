@@ -1,9 +1,11 @@
+import os
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from loss_logger import LossLogger
+from test_result_save import TestResultSaver
 import numpy as np
 
 # ✅ LossLogger のインスタンスを作成（ディレクトリごとに保存可能）
@@ -85,53 +87,44 @@ def build_transformer():
 
 # --- モデルの学習と損失の記録 ---
 if __name__ == "__main__":
-    # データのロード
-    #data_loader = DataLoader(data_dir="Data_Label/Gym")
-    #print("Data_Label/Gym")
-    data_loader = DataLoader(data_dir="Data_Label/E420") # E420データセットの時はこれ
+    print("=== データの作成を開始 ===")
+    data_loader = DataLoader(data_dir="Data_Label/E420")  # E420 データセットを使用
     print("Data_Label/E420")
     x_data, y_label = data_loader.load_data()
 
+    # ✅ 学習時の x_data, y_label の min/max を取得
+    x_min, x_max = np.min(x_data), np.max(x_data)
+    y_min, y_max = np.min(y_label), np.max(y_label)
 
-
-    # 正規化付きデータセットの作成
-    data_processor = DataProcessor(x_data, y_label, batch_size=32, normalization_method="minmax")  # Min-Max正規化
+    # ✅ 正規化付きデータセットの作成（Min-Max 正規化）
+    data_processor = DataProcessor(x_data, y_label, batch_size=32, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
-    # モデルの構築
+    # ✅ モデルの構築
     transformer = build_transformer()
     
-    # ✅ コールバックとして損失を記録
-    class LossHistoryCallback(keras.callbacks.Callback):
-        def on_epoch_end(self, epoch, logs=None):
-            logs = logs or {}
-            loss_logger.log_train_loss(logs.get("loss", float("nan")))
-            loss_logger.log_val_loss(logs.get("val_loss", float("nan")))
-    
-    # ✅ 学習
-    history = transformer.fit(train_dataset, validation_data=val_dataset, epochs=100, callbacks=[loss_logger])
-    
-    # ✅ テストデータの損失記録（MSE のみを保存）
+    print("=== モデルの学習を開始 ===")
+    transformer.fit(
+        train_dataset,
+        validation_data=val_dataset,
+        epochs=100,
+        callbacks=[loss_logger]  # ✅ コールバックを修正
+    )
+
+    print("=== モデルの評価 ===")
     test_loss, test_mse = transformer.evaluate(test_dataset)
-    loss_logger.save_test_loss(test_loss)  # 修正：MSE のみを保存
-    
-    # ✅ 予測処理
-    test_iter = iter(test_dataset)
-    x_test_sample, y_test_sample = next(test_iter)
-    predictions_normalized = transformer.predict(x_test_sample)
+    print(f"Test Loss: {test_loss}, Test MSE: {test_mse}")
 
-    # 逆正規化
-    predictions_original = DataProcessor.minmax_denormalize(predictions_normalized, data_processor.y_min, data_processor.y_max)
-    actual_original = DataProcessor.minmax_denormalize(y_test_sample.numpy(), data_processor.y_min, data_processor.y_max)
-    
-    # データの最大値と最小値を表示
-    print("x_data max:", data_processor.x_max)
-    print("x_data min:", data_processor.x_min)
-    print("y_label max:", data_processor.y_max)
-    print("y_label min:", data_processor.y_min)
+    print("=== モデルの保存 ===")
+    transformer.save("transformer_model", save_format="tf")
 
+    print("=== モデルの予測と保存を開始 ===")
 
-    # 予測結果の表示
-    print("\n=== 予測結果（元のスケール） ===")
-    print("Actual y_test (Original Scale):", actual_original[:5])  
-    print("Predicted y (Original Scale):", predictions_original[:5])
+    # ✅ テスト結果を保存するインスタンスを作成
+    test_saver = TestResultSaver(save_dir="test_results")
+
+    # ✅ 修正: test_dataset, transformer, y_min, y_max を渡して処理
+    test_saver.save_results(test_dataset, transformer, y_min, y_max)
+
+    # ✅ LossLogger を使って Test Loss を記録
+    loss_logger.save_test_loss(test_loss)
