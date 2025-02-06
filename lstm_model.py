@@ -45,7 +45,7 @@ def build_lstm(input_shape):
 
     # ✅ Optimizer を `RMSprop` に変更し、momentum を追加
     # optimizer = keras.optimizers.RMSprop(learning_rate=0.0001, momentum=0.9, clipnorm=1.0)
-    
+
     # OptimizerをAdamに変更．
     optimizer=keras.optimizers.Adam(learning_rate=0.001)
     model.compile(
@@ -67,7 +67,7 @@ if __name__ == "__main__":
     print(np.min(y_label), np.max(y_label))
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data, y_label, batch_size=64)  # ✅ `shuffle` を削除
+    data_processor = DataProcessor(x_data, y_label, batch_size=32)  # ✅ `shuffle` を削除
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     sample_input_shape = x_data.shape[1:]  # 例: (10, 6)
@@ -79,13 +79,13 @@ if __name__ == "__main__":
     print("=== モデルの学習を開始 ===")
 
     # ✅ 学習率スケジューリングの調整
-    lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=2, min_lr=1e-6)
+    #lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=2, min_lr=1e-6)
 
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
         epochs=100,
-        callbacks=[lr_scheduler, loss_logger]  # ✅ EarlyStopping を削除
+        callbacks=[loss_logger]  # ✅ EarlyStopping を削除
     )
 
     print("=== モデルの評価 ===")
