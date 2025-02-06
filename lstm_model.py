@@ -5,6 +5,7 @@ from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from loss_logger import LossLogger
+from test_result_save import TestResultSaver
 import numpy as np
 
 # ✅ TensorFlow のデバッグメッセージを抑制
@@ -106,6 +107,12 @@ if __name__ == "__main__":
 
     # ✅ モデルの評価（テストデータの Loss を保存）
     test_loss, test_mse = lstm_model.evaluate(test_dataset)
+
+    # ✅ テスト結果を保存するインスタンスを作成
+    test_saver = TestResultSaver(save_dir="test_results")
+
+    # ✅ 予測値と真値を保存
+    test_saver.save_results(test_dataset, lstm_model)
 
     # ✅ LossLogger を使って Test Loss を記録
     loss_logger.save_test_loss(test_loss)  # 修正：MSE のみを保存
