@@ -43,12 +43,9 @@ class LSTMModel(keras.Model):
 def build_lstm(input_shape):
     model = LSTMModel()
     model.build(input_shape=(None,) + input_shape)
-
-    # ✅ Optimizer を `RMSprop` に変更し、momentum を追加
-    # optimizer = keras.optimizers.RMSprop(learning_rate=0.0001, momentum=0.9, clipnorm=1.0)
-
-    # OptimizerをAdamに変更．
-    optimizer=keras.optimizers.Adam(learning_rate=0.001)
+    
+    # ✅ Optimizer を Adam に変更
+    optimizer = keras.optimizers.Adam(learning_rate=0.001)
     model.compile(
         optimizer=optimizer,
         loss="mse",  # ✅ 損失関数は MSE
@@ -56,37 +53,39 @@ def build_lstm(input_shape):
     )
     return model
 
+# ✅ 非正規化の関数を定義（Min-Max スケーリングの逆変換）
+def denormalize(data, min_val, max_val):
+    return data * (max_val - min_val) + min_val
+
 # --- メイン処理 ---
 if __name__ == "__main__":
     print("=== データの作成を開始 ===")
-    #data_loader = DataLoader(data_dir="Data_Label/Gym")
-    #print("Data_Label/Gym")
-    data_loader = DataLoader(data_dir="Data_Label/E420") # E420データセットの時はこれ
+    data_loader = DataLoader(data_dir="Data_Label/E420")
     print("Data_Label/E420")
     x_data, y_label = data_loader.load_data()
     print(np.min(x_data), np.max(x_data))
     print(np.min(y_label), np.max(y_label))
 
+    # ✅ 学習時の x_data, y_label の min/max を取得
+    x_min, x_max = np.min(x_data), np.max(x_data)
+    y_min, y_max = np.min(y_label), np.max(y_label)
+
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data, y_label, batch_size=32)  # ✅ `shuffle` を削除
+    data_processor = DataProcessor(x_data, y_label, batch_size=32)
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
-    sample_input_shape = x_data.shape[1:]  # 例: (10, 6)
+    sample_input_shape = x_data.shape[1:]
 
     print("=== LSTM モデルの構築 ===")
     lstm_model = build_lstm(sample_input_shape)
     lstm_model.summary()
 
     print("=== モデルの学習を開始 ===")
-
-    # ✅ 学習率スケジューリングの調整
-    #lr_scheduler = tf.keras.callbacks.ReduceLROnPlateau(monitor="val_loss", factor=0.1, patience=2, min_lr=1e-6)
-
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
         epochs=100,
-        callbacks=[loss_logger]  # ✅ EarlyStopping を削除
+        callbacks=[loss_logger]
     )
 
     print("=== モデルの評価 ===")
@@ -99,20 +98,20 @@ if __name__ == "__main__":
     print("=== モデルの予測テスト ===")
     test_iter = iter(test_dataset)
     x_test_sample, y_test_sample = next(test_iter)
-
     predictions = lstm_model.predict(x_test_sample)
 
     print("Actual y_test:", y_test_sample.numpy()[:5])
     print("Predicted y:", predictions[:5])
 
-    # ✅ モデルの評価（テストデータの Loss を保存）
-    test_loss, test_mse = lstm_model.evaluate(test_dataset)
+    # ✅ 予測値と真値を非正規化
+    predictions_denorm = denormalize(predictions, y_min, y_max)
+    test_labels_denorm = denormalize(y_test_sample.numpy(), y_min, y_max)
 
     # ✅ テスト結果を保存するインスタンスを作成
     test_saver = TestResultSaver(save_dir="test_results")
 
-    # ✅ 予測値と真値を保存
-    test_saver.save_results(test_dataset, lstm_model)
+    # ✅ 非正規化したデータを保存
+    test_saver.save_results(test_labels_denorm, predictions_denorm)
 
     # ✅ LossLogger を使って Test Loss を記録
-    loss_logger.save_test_loss(test_loss)  # 修正：MSE のみを保存
+    loss_logger.save_test_loss(test_loss)
