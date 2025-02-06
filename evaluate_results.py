@@ -44,8 +44,16 @@ class ModelResultEvaluator:
     def apply_interpolation(self):
         """スプライン補間を適用"""
         print(f"=== {self.dataset_name} - {self.model_name}: スプライン補間を適用 ===")
-        self.test_predictions_interp = np.array([self.interpolator.interpolate(sample) for sample in self.test_predictions])
-        self.test_true_values_interp = np.array([self.interpolator.interpolate(sample) for sample in self.test_true_values])
+        
+        # (サンプル数, 6) → (サンプル数, 100, 100, 6)
+        self.test_predictions_interp = np.array([
+            self.interpolator.interpolate(sample.reshape(6, 1)).reshape(100, 100, 6) 
+            for sample in self.test_predictions
+        ])
+        self.test_true_values_interp = np.array([
+            self.interpolator.interpolate(sample.reshape(6, 1)).reshape(100, 100, 6) 
+            for sample in self.test_true_values
+        ])
 
     def compute_difference(self):
         """補間後のデータの差分を計算"""
@@ -65,7 +73,7 @@ class ModelResultEvaluator:
         """ヒートマップを保存"""
         for i in range(min(5, len(data))):  # 最初の5枚を保存
             plt.figure(figsize=(6, 6))
-            plt.imshow(data[i], cmap="viridis", aspect="auto")
+            plt.imshow(data[i][:, :, 0], cmap="viridis", aspect="auto")  # 6チャンネルのうち1チャンネル目を可視化
             plt.colorbar()
             plt.title(f"{self.dataset_name} - {self.model_name}: {title_prefix} {i+1}")
             plt.savefig(os.path.join(self.output_dir, f"{filename_prefix}_{i+1}.png"))
