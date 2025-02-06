@@ -53,10 +53,6 @@ def build_lstm(input_shape):
     )
     return model
 
-# ✅ 非正規化の関数を定義（Min-Max スケーリングの逆変換）
-def denormalize(data, min_val, max_val):
-    return data * (max_val - min_val) + min_val
-
 # --- メイン処理 ---
 if __name__ == "__main__":
     print("=== データの作成を開始 ===")
@@ -95,23 +91,13 @@ if __name__ == "__main__":
     print("=== モデルの保存 ===")
     lstm_model.save("lstm_model", save_format="tf")
 
-    print("=== モデルの予測テスト ===")
-    test_iter = iter(test_dataset)
-    x_test_sample, y_test_sample = next(test_iter)
-    predictions = lstm_model.predict(x_test_sample)
-
-    print("Actual y_test:", y_test_sample.numpy()[:5])
-    print("Predicted y:", predictions[:5])
-
-    # ✅ 予測値と真値を非正規化
-    predictions_denorm = denormalize(predictions, y_min, y_max)
-    test_labels_denorm = denormalize(y_test_sample.numpy(), y_min, y_max)
+    print("=== モデルの予測と保存を開始 ===")
 
     # ✅ テスト結果を保存するインスタンスを作成
     test_saver = TestResultSaver(save_dir="test_results")
 
-    # ✅ 非正規化したデータを保存
-    test_saver.save_results(test_labels_denorm, predictions_denorm)
+    # ✅ 修正: test_dataset, lstm_model, y_min, y_max を渡して処理
+    test_saver.save_results(test_dataset, lstm_model, y_min, y_max)
 
     # ✅ LossLogger を使って Test Loss を記録
     loss_logger.save_test_loss(test_loss)
