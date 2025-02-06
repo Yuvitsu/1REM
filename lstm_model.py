@@ -94,7 +94,7 @@ if __name__ == "__main__":
     print("=== モデルの予測と保存を開始 ===")
 
     # ✅ テスト結果を保存するインスタンスを作成
-    test_saver = TestResultSaver(save_dir="test_results")
+    test_saver = TestResultSaver(save_dir="test_result/LSTM_test_results")
 
     # ✅ 修正: test_dataset, lstm_model, y_min, y_max を渡して処理
     test_saver.save_results(test_dataset, lstm_model, y_min, y_max)
