@@ -84,7 +84,7 @@ if __name__ == "__main__":
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=100,
+        epochs=1,
         callbacks=[loss_logger]
     )
 
