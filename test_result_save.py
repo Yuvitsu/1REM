@@ -2,7 +2,6 @@ import numpy as np
 import os
 import matplotlib.pyplot as plt
 import scipy.interpolate as interp
-from sklearn.metrics import mean_squared_error
 
 class TestResultSaver:
     def __init__(self, save_dir="test_results"):
@@ -76,8 +75,8 @@ class TestResultSaver:
         true_interp = np.array([true_splines[i](x_fine) for i in range(num_features)])
         diff_map = pred_interp - true_interp
 
-        # ✅ MSE 計算
-        mse_values = [mean_squared_error(true_interp[i], pred_interp[i]) for i in range(num_features)]
+        # ✅ MSE 計算 (sklearn を使用せず実装)
+        mse_values = np.mean((pred_interp - true_interp) ** 2, axis=1)
         overall_mse = np.mean(mse_values)
         print(f"✅ 各特徴の MSE: {mse_values}")
         print(f"✅ 全体の MSE: {overall_mse}")
