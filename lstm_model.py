@@ -44,8 +44,10 @@ def build_lstm(input_shape):
     model.build(input_shape=(None,) + input_shape)
 
     # ✅ Optimizer を `RMSprop` に変更し、momentum を追加
-    optimizer = keras.optimizers.RMSprop(learning_rate=0.0001, momentum=0.9, clipnorm=1.0)
-
+    # optimizer = keras.optimizers.RMSprop(learning_rate=0.0001, momentum=0.9, clipnorm=1.0)
+    
+    # OptimizerをAdamに変更．
+    optimizer=keras.optimizers.Adam(learning_rate=0.001)
     model.compile(
         optimizer=optimizer,
         loss="mse",  # ✅ 損失関数は MSE
