@@ -1,7 +1,7 @@
 import os
 import numpy as np
 import matplotlib.pyplot as plt
-from rssi_interpolator import RSSIInterpolator
+from scipy.interpolate import RectBivariateSpline
 
 class ModelResultEvaluator:
     def __init__(self, dataset_name, model_name, predictions_path, true_values_path, output_dir_base="test_results"):
@@ -22,8 +22,12 @@ class ModelResultEvaluator:
         self.output_dir = os.path.join(output_dir_base, dataset_name, f"{model_name}_heatmaps")
         os.makedirs(self.output_dir, exist_ok=True)
 
-        # スプライン補間用のクラス
-        self.interpolator = RSSIInterpolator(grid_size=(100, 100))
+        # スプライン補間の設定
+        self.grid_size = (100, 100)
+        self.x_coords = np.array([0, 1])
+        self.y_coords = np.array([0, 1, 2])
+        self.xi = np.linspace(self.x_coords.min(), self.x_coords.max(), self.grid_size[0])
+        self.yi = np.linspace(self.y_coords.min(), self.y_coords.max(), self.grid_size[1])
 
         # データのロード
         self.test_predictions = None
@@ -41,19 +45,28 @@ class ModelResultEvaluator:
         print(f"✅ {self.dataset_name} - {self.model_name} test_predictions.shape: {self.test_predictions.shape}")
         print(f"✅ {self.dataset_name} - {self.model_name} test_true_values.shape: {self.test_true_values.shape}")
 
+    def interpolate(self, data):
+        """
+        スプライン補間を適用し、(サンプル数, 100, 100) のデータを生成。
+        """
+        n_samples = data.shape[0]
+        interpolated_grids = np.zeros((n_samples, self.grid_size[0], self.grid_size[1]))
+
+        for i in range(n_samples):
+            z_values = np.array([
+                [data[i, 0], data[i, 1], data[i, 2]],
+                [data[i, 3], data[i, 4], data[i, 5]]
+            ])
+            spline = RectBivariateSpline(self.x_coords, self.y_coords, z_values, kx=1, ky=2)
+            interpolated_grids[i] = spline(self.xi, self.yi)
+
+        return interpolated_grids
+
     def apply_interpolation(self):
         """スプライン補間を適用"""
         print(f"=== {self.dataset_name} - {self.model_name}: スプライン補間を適用 ===")
-        
-        # (サンプル数, 6) → (サンプル数, 100, 100, 6)
-        self.test_predictions_interp = np.array([
-            self.interpolator.interpolate(sample.reshape(6, 1)).reshape(100, 100, 6) 
-            for sample in self.test_predictions
-        ])
-        self.test_true_values_interp = np.array([
-            self.interpolator.interpolate(sample.reshape(6, 1)).reshape(100, 100, 6) 
-            for sample in self.test_true_values
-        ])
+        self.test_predictions_interp = self.interpolate(self.test_predictions)
+        self.test_true_values_interp = self.interpolate(self.test_true_values)
 
     def compute_difference(self):
         """補間後のデータの差分を計算"""
@@ -73,7 +86,7 @@ class ModelResultEvaluator:
         """ヒートマップを保存"""
         for i in range(min(5, len(data))):  # 最初の5枚を保存
             plt.figure(figsize=(6, 6))
-            plt.imshow(data[i][:, :, 0], cmap="viridis", aspect="auto")  # 6チャンネルのうち1チャンネル目を可視化
+            plt.imshow(data[i], cmap="viridis", aspect="auto")
             plt.colorbar()
             plt.title(f"{self.dataset_name} - {self.model_name}: {title_prefix} {i+1}")
             plt.savefig(os.path.join(self.output_dir, f"{filename_prefix}_{i+1}.png"))
@@ -103,16 +116,10 @@ if __name__ == "__main__":
 
     for dataset in datasets:
         for model in models:
-            predictions_path = f"test_results/{dataset}/{model}_test_results/test_predictions.npy"
-            true_values_path = f"test_results/{dataset}/{model}_test_results/test_true_values.npy"
-
-            try:
-                test_predictions = np.load(predictions_path)
-                test_true_values = np.load(true_values_path)
-                
-                print(f"✅ {dataset} - {model} test_predictions.shape: {test_predictions.shape}")
-                print(f"✅ {dataset} - {model} test_true_values.shape: {test_true_values.shape}")
-            
-            except Exception as e:
-                print(f"❌ {dataset} - {model} のファイルの読み込みに失敗: {e}")
-
+            evaluator = ModelResultEvaluator(
+                dataset_name=dataset,
+                model_name=model,
+                predictions_path=f"test_results/{dataset}/{model}_test_results/test_predictions.npy",
+                true_values_path=f"test_results/{dataset}/{model}_test_results/test_true_values.npy"
+            )
+            evaluator.evaluate()
