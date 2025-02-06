@@ -83,7 +83,7 @@ if __name__ == "__main__":
     interpolator.plot_heatmaps(pred_rssi_values, "Predicted RSSI Heatmap", num_samples=3)
     
     error_maps = interpolator.compute_error_map(pred_rssi_values, true_rssi_values)
-    interpolator.plot_heatmaps(error_maps, "Error Heatmap", cmap="coolwarm", num_samples=3)
+    # interpolator.plot_heatmaps(error_maps, "Error Heatmap", cmap="coolwarm", num_samples=3)
     
     mse = interpolator.compute_mse(pred_rssi_values, true_rssi_values)
     print(f"Mean Squared Error (MSE) between predictions and true values: {mse}")
