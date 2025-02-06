@@ -103,10 +103,16 @@ if __name__ == "__main__":
 
     for dataset in datasets:
         for model in models:
-            evaluator = ModelResultEvaluator(
-                dataset_name=dataset,
-                model_name=model,
-                predictions_path=f"test_results/{dataset}/{model}_test_results/test_predictions.npy",
-                true_values_path=f"test_results/{dataset}/{model}_test_results/test_true_values.npy"
-            )
-            evaluator.evaluate()
+            predictions_path = f"test_results/{dataset}/{model}_test_results/test_predictions.npy"
+            true_values_path = f"test_results/{dataset}/{model}_test_results/test_true_values.npy"
+
+            try:
+                test_predictions = np.load(predictions_path)
+                test_true_values = np.load(true_values_path)
+                
+                print(f"✅ {dataset} - {model} test_predictions.shape: {test_predictions.shape}")
+                print(f"✅ {dataset} - {model} test_true_values.shape: {test_true_values.shape}")
+            
+            except Exception as e:
+                print(f"❌ {dataset} - {model} のファイルの読み込みに失敗: {e}")
+
