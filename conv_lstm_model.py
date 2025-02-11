@@ -51,6 +51,8 @@ if __name__ == "__main__":
     interpolator = RSSIInterpolator(grid_size=(100, 100))
     x_data_interp = np.array([interpolator.interpolate(sample) for sample in x_data])  # (サンプル数, 100, 100, 10, 6)
     y_label_interp = np.array([interpolator.interpolate(sample) for sample in y_label])  # (サンプル数, 100, 100, 6)
+    print("x_data.shape:",x_data_interp.shape)
+    print("y_label_interp.shape:",y_label_interp.shape)
 
     print("=== データセットの作成を開始 ===")
     data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
