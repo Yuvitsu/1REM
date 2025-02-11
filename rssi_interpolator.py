@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 class RSSIInterpolator:
     def __init__(self, grid_size=(100, 100), x_coords=None, y_coords=None):
         """
-        RSSIデータ（n×m×6のnp.array）を最後の次元(6)だけ100×100の行列にスプライン補間するクラス。
+        RSSIデータ（任意の形状のnp.array）を最後の次元(6)だけ100×100の行列にスプライン補間するクラス。
         """
         self.grid_size = grid_size
         self.x_coords = x_coords if x_coords is not None else np.array([0, 1])
@@ -16,22 +16,22 @@ class RSSIInterpolator:
     
     def interpolate(self, rssi_values):
         """
-        RSSI測定値セットを最後の次元だけ補間し、(n, m, 100, 100)の行列を生成する。
+        RSSI測定値セットを最後の次元だけ補間し、(入力次元を維持しつつ100, 100)の行列を生成する。
         """
-        if len(rssi_values.shape) != 3 or rssi_values.shape[2] != 6:
-            raise ValueError("rssi_values は (n, m, 6) の np.array である必要があります。")
+        if rssi_values.shape[-1] != 6:
+            raise ValueError("rssi_values の最後の次元は6である必要があります。")
         
-        n, m, _ = rssi_values.shape
-        interpolated_grids = np.zeros((n, m, self.grid_size[0], self.grid_size[1]))
+        input_shape = rssi_values.shape[:-1]
+        interpolated_grids = np.zeros((*input_shape, self.grid_size[0], self.grid_size[1]))
         
-        for i in range(n):
-            for j in range(m):
-                z_values = np.array([
-                    [rssi_values[i, j, 0], rssi_values[i, j, 1], rssi_values[i, j, 2]],
-                    [rssi_values[i, j, 3], rssi_values[i, j, 4], rssi_values[i, j, 5]]
-                ])
-                spline = RectBivariateSpline(self.x_coords, self.y_coords, z_values, kx=1, ky=2)
-                interpolated_grids[i, j] = spline(self.xi, self.yi)
+        it = np.ndindex(input_shape)
+        for idx in it:
+            z_values = np.array([
+                [rssi_values[idx + (0,)], rssi_values[idx + (1,)], rssi_values[idx + (2,)]],
+                [rssi_values[idx + (3,)], rssi_values[idx + (4,)], rssi_values[idx + (5,)]]
+            ])
+            spline = RectBivariateSpline(self.x_coords, self.y_coords, z_values, kx=1, ky=2)
+            interpolated_grids[idx] = spline(self.xi, self.yi)
         
         return interpolated_grids
 
