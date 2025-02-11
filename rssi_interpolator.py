@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 class RSSIInterpolator:
     def __init__(self, grid_size=(100, 100), x_coords=None, y_coords=None):
         """
-        RSSIデータ（任意の形状のnp.array）を最後の次元(6)だけ100×100の行列にスプライン補間するクラス。
+        RSSIデータ（任意の形状のnp.array）を最後の次元(6)だけgrid_size×grid_sizeの行列にスプライン補間するクラス。
         """
         self.grid_size = grid_size
         self.x_coords = x_coords if x_coords is not None else np.array([0, 1])
@@ -16,13 +16,13 @@ class RSSIInterpolator:
     
     def interpolate(self, rssi_values):
         """
-        RSSI測定値セットを最後の次元だけ補間し、(入力次元を維持しつつ100, 100)の行列を生成する。
+        RSSI測定値セットを最後の次元だけ補間し、(入力次元を維持しつつgrid_size×grid_size)の行列を生成する。
         """
         if rssi_values.shape[-1] != 6:
             raise ValueError("rssi_values の最後の次元は6である必要があります。")
         
         input_shape = rssi_values.shape[:-1]
-        interpolated_grids = np.zeros((*input_shape, self.grid_size[0], self.grid_size[1]))
+        interpolated_grids = np.memmap('/tmp/interpolated_grids.dat', dtype=np.float32, mode='w+', shape=(*input_shape, self.grid_size[0], self.grid_size[1]))
         
         it = np.ndindex(input_shape)
         for idx in it:
@@ -38,6 +38,6 @@ class RSSIInterpolator:
 if __name__ == "__main__":
     # ダミーデータの作成
     sample_rssi_values = np.random.rand(5, 4, 6) * -50  # (n=5, m=4, 6つのRSSI値)
-    interpolator = RSSIInterpolator()
+    interpolator = RSSIInterpolator(grid_size=(100, 100))
     interpolated_data = interpolator.interpolate(sample_rssi_values)
     print("補間後のデータ形状:", interpolated_data.shape)  # (5, 4, 100, 100)
