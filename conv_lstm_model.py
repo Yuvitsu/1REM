@@ -21,13 +21,8 @@ def build_conv_lstm(input_shape):
         layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=True, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
 
-        layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=True, activation="tanh"),
-        layers.BatchNormalization(),
-
-        layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=False, activation="tanh"),
-        layers.BatchNormalization(),
-
-        layers.Conv2D(filters=6, kernel_size=(3, 3), activation="linear", padding="same")
+        # ✅ 出力を (100, 100, 1) にするため filters=1 に変更
+        layers.Conv2D(filters=1, kernel_size=(3, 3), activation="linear", padding="same")
     ])
 
     model.compile(
@@ -50,9 +45,13 @@ if __name__ == "__main__":
     print("=== スプライン補間を適用 ===")
     interpolator = RSSIInterpolator(grid_size=(100, 100))
     x_data_interp = np.array([interpolator.interpolate(sample) for sample in x_data])  # (サンプル数, 100, 100, 10, 6)
-    y_label_interp = np.array([interpolator.interpolate(sample) for sample in y_label])  # (サンプル数, 100, 100, 6)
-    print("x_data.shape:",x_data_interp.shape)
-    print("y_label_interp.shape:",y_label_interp.shape)
+    y_label_interp = np.array([interpolator.interpolate(sample) for sample in y_label])  # (サンプル数, 100, 100)
+
+    # ✅ y_label_interp の形状を (サンプル数, 100, 100, 1) に変換
+    y_label_interp = y_label_interp.reshape(-1, 100, 100, 1)
+
+    print("x_data_interp.shape:", x_data_interp.shape)  # 期待: (サンプル数, 100, 100, 10, 6)
+    print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (サンプル数, 100, 100, 1)
 
     print("=== データセットの作成を開始 ===")
     data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
@@ -85,7 +84,7 @@ if __name__ == "__main__":
     test_saver = TestResultSaver(save_dir="test_results")
 
     # ✅ 予測結果の保存
-    test_saver.save_results(test_datasets, conv_lstm_model, y_min, y_max)
+    test_saver.save_results(test_dataset, conv_lstm_model, y_min, y_max)
 
     # ✅ LossLogger を使って Test Loss を記録
     loss_logger.save_test_loss(test_loss)
