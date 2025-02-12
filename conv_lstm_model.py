@@ -20,7 +20,7 @@ loss_logger = LossLogger(model_name="conv_lstm_model")
 def build_conv_lstm(input_shape):
     model = keras.Sequential([
         # ✅ 最後の時刻のデータだけを返すように変更
-        layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
+        layers.ConvLSTM2D(filters=32, kernel_size=(3, 3), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
 
         # ✅ 出力を (100, 100, 1) にするため filters=1 に変更
