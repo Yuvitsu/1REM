@@ -22,7 +22,7 @@ class RSSIInterpolator:
             raise ValueError("rssi_values の最後の次元は6である必要があります。")
         
         input_shape = rssi_values.shape[:-1]
-        interpolated_grids = np.memmap('/tmp/interpolated_grids.dat', dtype=np.float32, mode='w+', shape=(*input_shape, self.grid_size[0], self.grid_size[1]))
+        interpolated_grids = np.empty('/tmp/interpolated_grids.dat', dtype=np.float32, mode='w+', shape=(*input_shape, self.grid_size[0], self.grid_size[1]))
         
         it = np.ndindex(input_shape)
         for idx in it:
