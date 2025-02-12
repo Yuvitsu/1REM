@@ -58,7 +58,7 @@ if __name__ == "__main__":
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     sample_input_shape = x_data_interp.shape[1:]
-
+    print("sample_input_shape",sample_input_shape)
     print("=== ConvLSTM モデルの構築 ===")
     conv_lstm_model = build_conv_lstm(sample_input_shape)
     conv_lstm_model.summary()
