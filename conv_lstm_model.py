@@ -50,13 +50,16 @@ if __name__ == "__main__":
     # ✅ y_label_interp の形状を (サンプル数, 100, 100, 1) に変換
     y_label_interp = y_label_interp.reshape(-1, 100, 100, 1)
 
-    print("x_data_interp.shape:", x_data_interp.shape)  # 期待: (サンプル数, 100, 100, 10, 6)
-    print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (サンプル数, 100, 100, 1)
+    print("x_data_interp.shape:", x_data_interp.shape)  # x_data_interp.shape: (31513, 10, 100, 100)
+    print("y_label_interp.shape:", y_label_interp.shape)  # y_label_interp.shape: (31513, 100, 100, 1)
 
     print("=== データセットの作成を開始 ===")
     data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
+
+
+    x_data_interp = x_data_interp[..., np.newaxis]
     sample_input_shape = x_data_interp.shape[1:]
     print("sample_input_shape",sample_input_shape)
     print("=== ConvLSTM モデルの構築 ===")
