@@ -9,6 +9,7 @@ from rssi_interpolator import RSSIInterpolator
 from loss_logger import LossLogger
 from test_result_save import TestResultSaver
 from tf_dataset_builder import TFDatasetBuilder
+
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
@@ -18,7 +19,8 @@ loss_logger = LossLogger(model_name="conv_lstm_model")
 # --- ConvLSTM モデルの構築 ---
 def build_conv_lstm(input_shape):
     model = keras.Sequential([
-        layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=True, activation="tanh", input_shape=input_shape),
+        # ✅ 最後の時刻のデータだけを返すように変更
+        layers.ConvLSTM2D(filters=64, kernel_size=(3, 3), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
 
         # ✅ 出力を (100, 100, 1) にするため filters=1 に変更
@@ -47,21 +49,24 @@ if __name__ == "__main__":
     x_data_interp = np.array([interpolator.interpolate(sample) for sample in x_data])  # (サンプル数, 100, 100, 10, 6)
     y_label_interp = np.array([interpolator.interpolate(sample) for sample in y_label])  # (サンプル数, 100, 100)
 
-    # ✅ y_label_interp の形状を (サンプル数, 100, 100, 1) に変換
+    # ✅ x_data_interp にチャンネル次元を追加 (5D テンソルにする)
+    x_data_interp = x_data_interp[..., np.newaxis]  # (31513, 10, 100, 100, 1)
+
+    # ✅ y_label の形状を (サンプル数, 100, 100, 1) に変換
     y_label_interp = y_label_interp.reshape(-1, 100, 100, 1)
 
-    print("x_data_interp.shape:", x_data_interp.shape)  # x_data_interp.shape: (31513, 10, 100, 100)
-    print("y_label_interp.shape:", y_label_interp.shape)  # y_label_interp.shape: (31513, 100, 100, 1)
+    print("x_data_interp.shape:", x_data_interp.shape)  # 期待: (31513, 10, 100, 100, 1)
+    print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (31513, 100, 100, 1)
 
     print("=== データセットの作成を開始 ===")
     data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
+    # ✅ sample_input_shape を明示的に設定
+    time_steps = 10
+    sample_input_shape = (time_steps, 100, 100, 1)
+    print("sample_input_shape", sample_input_shape)
 
-
-    x_data_interp = x_data_interp[..., np.newaxis]
-    sample_input_shape = x_data_interp.shape[1:]
-    print("sample_input_shape",sample_input_shape)
     print("=== ConvLSTM モデルの構築 ===")
     conv_lstm_model = build_conv_lstm(sample_input_shape)
     conv_lstm_model.summary()
