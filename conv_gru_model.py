@@ -20,13 +20,26 @@ loss_logger = LossLogger(model_name="conv_gru_model")
 # --- ConvGRU モデルの構築 ---
 def build_conv_gru(input_shape):
     model = keras.Sequential([
-        # ✅ ConvLSTM2D → ConvGRU2D に変更
-        ConvGRU2D(filters=32, kernel_size=(3, 3), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
-        layers.BatchNormalization(),
-        
-        # ✅ 出力を (100, 100, 1) にするため filters=1 に変更
-        layers.Conv2D(filters=1, kernel_size=(3, 3), activation="linear", padding="same")
-    ])
+    # ✅ ConvLSTM2D → ConvGRU2D に変更
+    ConvGRU2D(filters=64, kernel_size=(4,4), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
+    layers.BatchNormalization(),
+
+    # ✅ Conv層1（32フィルター, ReLU）
+    layers.Conv2D(filters=32, kernel_size=(4,4), activation="tanh", padding="same"),
+    layers.BatchNormalization(),
+
+    # ✅ Conv層2（64フィルター, ReLU）
+    layers.Conv2D(filters=16, kernel_size=(4,4), activation="tanh", padding="same"),
+    layers.BatchNormalization(),
+
+    # ✅ Conv層3（128フィルター, ReLU）
+    layers.Conv2D(filters=8, kernel_size=(4,4), activation="tanh", padding="same"),
+    layers.BatchNormalization(),
+
+    # ✅ Conv層4（出力層: 1フィルター, Linear）
+    layers.Conv2D(filters=1, kernel_size=(4,4), activation="linear", padding="same")
+])
+
 
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.001),
@@ -62,6 +75,8 @@ if __name__ == "__main__":
     print("=== データセットの作成を開始 ===")
     data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
+
+    del x_data,y_label,x_data_interp,y_label_interp
 
     # ✅ sample_input_shape を明示的に設定
     time_steps = 10
