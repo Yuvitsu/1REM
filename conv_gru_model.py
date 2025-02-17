@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras import backend as K
+import gc
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from rssi_interpolator import RSSIInterpolator
@@ -14,32 +16,35 @@ from ConvGRU import ConvGRU2D  # ✅ ConvGRU2D のインポート
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+# ✅ メモリを解放してからモデルを作成
+K.clear_session()
+gc.collect()
+
 # ✅ LossLogger のインスタンスを作成
 loss_logger = LossLogger(model_name="conv_gru_model")
 
 # --- ConvGRU モデルの構築 ---
 def build_conv_gru(input_shape):
     model = keras.Sequential([
-    # ✅ ConvLSTM2D → ConvGRU2D に変更
-    ConvGRU2D(filters=64, kernel_size=(4,4), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
-    layers.BatchNormalization(),
+        # ✅ ConvGRU2D のフィルター数を削減
+        ConvGRU2D(filters=32, kernel_size=(3,3), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
+        layers.BatchNormalization(),
 
-    # ✅ Conv層1（32フィルター, ReLU）
-    layers.Conv2D(filters=32, kernel_size=(4,4), activation="tanh", padding="same"),
-    layers.BatchNormalization(),
+        # ✅ Conv層1（フィルター数 32 → 16）
+        layers.Conv2D(filters=16, kernel_size=(3,3), activation="tanh", padding="same"),
+        layers.BatchNormalization(),
 
-    # ✅ Conv層2（64フィルター, ReLU）
-    layers.Conv2D(filters=16, kernel_size=(4,4), activation="tanh", padding="same"),
-    layers.BatchNormalization(),
+        # ✅ Conv層2（フィルター数 16 → 8）
+        layers.Conv2D(filters=8, kernel_size=(3,3), activation="tanh", padding="same"),
+        layers.BatchNormalization(),
 
-    # ✅ Conv層3（128フィルター, ReLU）
-    layers.Conv2D(filters=8, kernel_size=(4,4), activation="tanh", padding="same"),
-    layers.BatchNormalization(),
+        # ✅ Conv層3（フィルター数 8 → 4）
+        layers.Conv2D(filters=4, kernel_size=(3,3), activation="tanh", padding="same"),
+        layers.BatchNormalization(),
 
-    # ✅ Conv層4（出力層: 1フィルター, Linear）
-    layers.Conv2D(filters=1, kernel_size=(4,4), activation="linear", padding="same")
-])
-
+        # ✅ Conv層4（出力層: 1フィルター, Linear）
+        layers.Conv2D(filters=1, kernel_size=(3,3), activation="linear", padding="same")
+    ])
 
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.001),
@@ -73,10 +78,12 @@ if __name__ == "__main__":
     print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (31513, 100, 100, 1)
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
+    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=8, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
-    del x_data,y_label,x_data_interp,y_label_interp
+    # ✅ 不要なデータを削除し、メモリを解放
+    del x_data, y_label, x_data_interp, y_label_interp
+    gc.collect()
 
     # ✅ sample_input_shape を明示的に設定
     time_steps = 10
@@ -112,3 +119,7 @@ if __name__ == "__main__":
 
     # ✅ LossLogger を使って Test Loss を記録
     loss_logger.save_test_loss(test_loss)
+
+    # ✅ 学習後のメモリ解放
+    K.clear_session()
+    gc.collect()
