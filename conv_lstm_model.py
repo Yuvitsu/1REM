@@ -3,6 +3,8 @@ import numpy as np
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
+from tensorflow.keras import backend as K
+import gc
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from rssi_interpolator import RSSIInterpolator
@@ -13,22 +15,41 @@ from tf_dataset_builder import TFDatasetBuilder
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
+# ✅ メモリを解放してからモデルを作成
+K.clear_session()
+gc.collect()
+
 # ✅ LossLogger のインスタンスを作成
 loss_logger = LossLogger(model_name="conv_lstm_model")
 
 # --- ConvLSTM モデルの構築 ---
 def build_conv_lstm(input_shape):
     model = keras.Sequential([
-        # ✅ 最後の時刻のデータだけを返すように変更
-        layers.ConvLSTM2D(filters=32, kernel_size=(3, 3), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
+        # ✅ ConvLSTM2D 層（ConvGRU2D から変更）
+        layers.ConvLSTM2D(filters=64, kernel_size=(4, 4), padding="same", return_sequences=True, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
+        layers.Dropout(0.3),
 
-        # ✅ 出力を (100, 100, 1) にするため filters=1 に変更
-        layers.Conv2D(filters=1, kernel_size=(3, 3), activation="linear", padding="same")
+        layers.ConvLSTM2D(filters=32, kernel_size=(4, 4), padding="same", return_sequences=False, activation="tanh"),
+        layers.BatchNormalization(),
+        layers.Dropout(0.3),
+
+        # ✅ Conv層1（フィルター数 16）
+        layers.Conv2D(filters=16, kernel_size=(4, 4), activation="tanh", padding="same"),
+        layers.BatchNormalization(),
+        layers.Dropout(0.3),
+
+        # ✅ Conv層2（フィルター数 8）
+        layers.Conv2D(filters=8, kernel_size=(4, 4), activation="tanh", padding="same"),
+        layers.BatchNormalization(),
+        layers.Dropout(0.3),
+
+        # ✅ Conv層3（出力層: 1フィルター, Linear）
+        layers.Conv2D(filters=1, kernel_size=(4, 4), activation="linear", padding="same")
     ])
 
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=keras.optimizers.Adam(learning_rate=0.0001),
         loss="mse",
         metrics=["mse"]
     )
@@ -59,8 +80,12 @@ if __name__ == "__main__":
     print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (31513, 100, 100, 1)
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
+    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=16, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
+
+    # ✅ 不要なデータを削除し、メモリを解放
+    del x_data, y_label, x_data_interp, y_label_interp
+    gc.collect()
 
     # ✅ sample_input_shape を明示的に設定
     time_steps = 10
@@ -96,3 +121,7 @@ if __name__ == "__main__":
 
     # ✅ LossLogger を使って Test Loss を記録
     loss_logger.save_test_loss(test_loss)
+
+    # ✅ 学習後のメモリ解放
+    K.clear_session()
+    gc.collect()
