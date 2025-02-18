@@ -11,7 +11,6 @@ from rssi_interpolator import RSSIInterpolator
 from loss_logger import LossLogger
 from test_result_save import TestResultSaver
 from tf_dataset_builder import TFDatasetBuilder
-from ConvGRU import ConvGRU2D  # ✅ ConvGRU2D のインポート
 
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -21,33 +20,33 @@ K.clear_session()
 gc.collect()
 
 # ✅ LossLogger のインスタンスを作成
-loss_logger = LossLogger(model_name="conv_gru_model")
+loss_logger = LossLogger(model_name="conv_lstm_model")
 
-# --- ConvGRU モデルの構築 ---
-def build_conv_gru(input_shape):
+# --- ConvLSTM モデルの構築 ---
+def build_conv_lstm(input_shape):
     model = keras.Sequential([
-        # ✅ ConvGRU2D のフィルター数を削減
-        ConvGRU2D(filters=64, kernel_size=(4,4), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
-        layers.BatchNormalization(),
-        layers.Dropout(0.3),  # ✅ ConvGRU2D の後にドロップアウトを追加
-
-        # ✅ Conv層1（フィルター数 32 → 16）
-        layers.Conv2D(filters=32, kernel_size=(4,4), activation="tanh", padding="same"),
-        layers.BatchNormalization(),
-        layers.Dropout(0.3),  # ✅ Conv2D の後にドロップアウトを追加
-
-        # ✅ Conv層2（フィルター数 16 → 8）
-        layers.Conv2D(filters=16, kernel_size=(4,4), activation="tanh", padding="same"),
+        # ✅ ConvLSTM2D 層
+        layers.ConvLSTM2D(filters=64, kernel_size=(4, 4), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
-        # ✅ Conv層3（フィルター数 8 → 4）
-        layers.Conv2D(filters=8, kernel_size=(4,4), activation="tanh", padding="same"),
+        # ✅ Conv層1（フィルター数 32）
+        layers.Conv2D(filters=32, kernel_size=(4, 4), activation="tanh", padding="same"),
+        layers.BatchNormalization(),
+        layers.Dropout(0.3),
+
+        # ✅ Conv層2（フィルター数 16）
+        layers.Conv2D(filters=16, kernel_size=(4, 4), activation="tanh", padding="same"),
+        layers.BatchNormalization(),
+        layers.Dropout(0.3),
+
+        # ✅ Conv層3（フィルター数 8）
+        layers.Conv2D(filters=8, kernel_size=(4, 4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
         # ✅ Conv層4（出力層: 1フィルター, Linear）
-        layers.Conv2D(filters=1, kernel_size=(4,4), activation="linear", padding="same")
+        layers.Conv2D(filters=1, kernel_size=(4, 4), activation="linear", padding="same")
     ])
 
     model.compile(
@@ -88,17 +87,18 @@ if __name__ == "__main__":
     # ✅ 不要なデータを削除し、メモリを解放
     del x_data, y_label, x_data_interp, y_label_interp
     gc.collect()
+
     # ✅ sample_input_shape を明示的に設定
     time_steps = 10
     sample_input_shape = (time_steps, 100, 100, 1)
     print("sample_input_shape", sample_input_shape)
 
-    print("=== ConvGRU モデルの構築 ===")
-    conv_gru_model = build_conv_gru(sample_input_shape)
-    conv_gru_model.summary()
+    print("=== ConvLSTM モデルの構築 ===")
+    conv_lstm_model = build_conv_lstm(sample_input_shape)
+    conv_lstm_model.summary()
 
     print("=== モデルの学習を開始 ===")
-    conv_gru_model.fit(
+    conv_lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
         epochs=50,
@@ -106,11 +106,11 @@ if __name__ == "__main__":
     )
 
     print("=== モデルの評価 ===")
-    test_loss, test_mse = conv_gru_model.evaluate(test_dataset)
+    test_loss, test_mse = conv_lstm_model.evaluate(test_dataset)
     print(f"Test Loss: {test_loss}, Test MSE: {test_mse}")
 
     print("=== モデルの保存 ===")
-    conv_gru_model.save("conv_gru_model", save_format="tf")
+    conv_lstm_model.save("conv_lstm_model", save_format="tf")
 
     print("=== モデルの予測と保存を開始 ===")
 
@@ -118,7 +118,7 @@ if __name__ == "__main__":
     test_saver = TestResultSaver(save_dir="test_results")
 
     # ✅ 予測結果の保存
-    test_saver.save_results(test_dataset, conv_gru_model, y_min, y_max)
+    test_saver.save_results(test_dataset, conv_lstm_model, y_min, y_max)
 
     # ✅ LossLogger を使って Test Loss を記録
     loss_logger.save_test_loss(test_loss)
