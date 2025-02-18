@@ -3,7 +3,7 @@ import numpy as np
 from load_data_label import DataLoader
 
 class TFDatasetBuilder:
-    def __init__(self, x_data, y_data, batch_size=64, shuffle=True, normalization_method="minmax", prefetch=True):
+    def __init__(self, x_data, y_data, batch_size=32, shuffle=True, normalization_method="minmax", prefetch=True):
         """
         TensorFlow Dataset を最適化するクラス
 
