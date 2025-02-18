@@ -80,7 +80,7 @@ class DeepTimeSeriesTransformer(keras.Model):
 def build_deep_transformer():
     model = DeepTimeSeriesTransformer(num_layers=6, d_model=128, num_heads=8, dff=1024)
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.0005),  # ✅ 学習率を調整
+        optimizer=keras.optimizers.Adam(learning_rate=0.0001),  # ✅ 学習率を調整
         loss="mse",
         metrics=["mse"]
     )
