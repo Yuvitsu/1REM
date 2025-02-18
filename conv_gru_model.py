@@ -88,6 +88,7 @@ if __name__ == "__main__":
     # ✅ 不要なデータを削除し、メモリを解放
     del x_data, y_label, x_data_interp, y_label_interp
     gc.collect()
+    print("ok")
 
     # ✅ sample_input_shape を明示的に設定
     time_steps = 10
