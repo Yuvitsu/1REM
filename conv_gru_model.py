@@ -27,27 +27,31 @@ loss_logger = LossLogger(model_name="conv_gru_model")
 def build_conv_gru(input_shape):
     model = keras.Sequential([
         # ✅ ConvGRU2D のフィルター数を削減
-        ConvGRU2D(filters=32, kernel_size=(3,3), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
+        ConvGRU2D(filters=64, kernel_size=(4,4), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
+        layers.Dropout(0.3),  # ✅ ConvGRU2D の後にドロップアウトを追加
 
         # ✅ Conv層1（フィルター数 32 → 16）
-        layers.Conv2D(filters=16, kernel_size=(3,3), activation="tanh", padding="same"),
+        layers.Conv2D(filters=32, kernel_size=(4,4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
+        layers.Dropout(0.3),  # ✅ Conv2D の後にドロップアウトを追加
 
         # ✅ Conv層2（フィルター数 16 → 8）
-        layers.Conv2D(filters=8, kernel_size=(3,3), activation="tanh", padding="same"),
+        layers.Conv2D(filters=16, kernel_size=(4,4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
+        layers.Dropout(0.3),
 
         # ✅ Conv層3（フィルター数 8 → 4）
-        layers.Conv2D(filters=4, kernel_size=(3,3), activation="tanh", padding="same"),
+        layers.Conv2D(filters=8, kernel_size=(4,4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
+        layers.Dropout(0.3),
 
         # ✅ Conv層4（出力層: 1フィルター, Linear）
-        layers.Conv2D(filters=1, kernel_size=(3,3), activation="linear", padding="same")
+        layers.Conv2D(filters=1, kernel_size=(4,4), activation="linear", padding="same")
     ])
 
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=keras.optimizers.Adam(learning_rate=0.0001),
         loss="mse",
         metrics=["mse"]
     )
@@ -78,7 +82,7 @@ if __name__ == "__main__":
     print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (31513, 100, 100, 1)
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=8, normalization_method="minmax")
+    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     # ✅ 不要なデータを削除し、メモリを解放
