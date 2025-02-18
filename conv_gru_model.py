@@ -82,22 +82,8 @@ if __name__ == "__main__":
     print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (31513, 100, 100, 1)
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=32, normalization_method="minmax")
+    data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=16, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
-
-
-    # ✅ Dataset を `float16` に変換
-    train_dataset = train_dataset.map(lambda x, y: (tf.cast(x, tf.float32), tf.cast(y, tf.float32)),
-                                    num_parallel_calls=tf.data.AUTOTUNE)
-    val_dataset = val_dataset.map(lambda x, y: (tf.cast(x, tf.float32), tf.cast(y, tf.float32)),
-                                num_parallel_calls=tf.data.AUTOTUNE)
-    test_dataset = test_dataset.map(lambda x, y: (tf.cast(x, tf.float32), tf.cast(y, tf.float32)),
-                                    num_parallel_calls=tf.data.AUTOTUNE)
-
-    # ✅ Prefetch を適用（データロードの最適化）
-    train_dataset = train_dataset.prefetch(tf.data.AUTOTUNE)
-    val_dataset = val_dataset.prefetch(tf.data.AUTOTUNE)
-    test_dataset = test_dataset.prefetch(tf.data.AUTOTUNE)
 
     # ✅ 不要なデータを削除し、メモリを解放
     del x_data, y_label, x_data_interp, y_label_interp
