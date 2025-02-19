@@ -1,4 +1,6 @@
 import time
+import tensorflow as tf  # ✅ 追加
+from tensorflow import keras  # ✅ 追加
 
 # ✅ 学習プロセス全体の情報をログに記録
 class TrainingLogger(keras.callbacks.Callback):
