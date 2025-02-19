@@ -3,9 +3,9 @@ import tensorflow as tf
 
 # ✅ Train Loss, Validation Loss, Test Loss を個別に保存するコールバック
 class LossLogger(tf.keras.callbacks.Callback):
-    def __init__(self, model_name="default_model", base_log_dir="logs"):
+    def __init__(self, model_name="default_model", save_dir="test_results"):
         super().__init__()
-        self.log_dir = os.path.join(base_log_dir, model_name)  # 指定されたディレクトリにログを保存
+        self.log_dir = os.path.join(save_dir, model_name)  # ✅ 指定されたパスに保存
         os.makedirs(self.log_dir, exist_ok=True)  # ディレクトリを作成
 
         self.train_log = os.path.join(self.log_dir, "train_loss.txt")
@@ -18,7 +18,7 @@ class LossLogger(tf.keras.callbacks.Callback):
         with open(self.val_log, "w") as f:
             f.write("Epoch,Val Loss\n")
         with open(self.test_log, "w") as f:
-            f.write("Test Loss\n")  # Test のヘッダー（MAE を削除）
+            f.write("Test Loss\n")  # Test のヘッダー
 
     def on_epoch_end(self, epoch, logs=None):
         logs = logs or {}

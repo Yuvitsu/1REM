@@ -127,4 +127,4 @@ if __name__ == "__main__":
     # ✅ 修正: test_dataset, transformer, y_min, y_max を渡して処理
     test_saver.save_results(test_dataset, transformer, y_min, y_max)
     # ✅ LossLogger のインスタンスを作成（保存パスを指定）
-    loss_logger = LossLogger(model_name="transformer_model", save_dir="test_results/Transformer_results")
+    loss_logger = LossLogger(model_name="transformer_model", save_dir=save_dir)
