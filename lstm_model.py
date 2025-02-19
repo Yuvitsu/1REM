@@ -16,19 +16,28 @@ loss_logger = LossLogger(model_name="lstm_model")
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
-    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.2):# 
+    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.3):  # ✅ dropout_rate を 0.3 に設定
         super(LSTMModel, self).__init__()
         self.lstm_layers = []
 
-        # ✅ 1層目の LSTM
-        self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, activation="tanh"))
+        # ✅ 1層目の LSTM（ドロップアウト追加）
+        self.lstm_layers.append(layers.LSTM(
+            num_units, return_sequences=True, activation="tanh",
+            dropout=dropout_rate, recurrent_dropout=dropout_rate
+        ))
 
-        # ✅ 中間の LSTM 層
+        # ✅ 中間の LSTM 層（ドロップアウト追加）
         for _ in range(num_layers - 2):
-            self.lstm_layers.append(layers.LSTM(num_units, return_sequences=True, activation="tanh"))
+            self.lstm_layers.append(layers.LSTM(
+                num_units, return_sequences=True, activation="tanh",
+                dropout=dropout_rate, recurrent_dropout=dropout_rate
+            ))
 
-        # ✅ 最後の LSTM 層（return_sequences=False）
-        self.lstm_layers.append(layers.LSTM(num_units, return_sequences=False, activation="tanh"))
+        # ✅ 最後の LSTM 層（ドロップアウト追加）
+        self.lstm_layers.append(layers.LSTM(
+            num_units, return_sequences=False, activation="tanh",
+            dropout=dropout_rate, recurrent_dropout=dropout_rate
+        ))
 
         # ✅ 出力層
         self.output_layer = layers.Dense(6, activation="linear")
