@@ -106,7 +106,11 @@ if __name__ == "__main__":
 
     # ✅ モデルの構築
     transformer = build_transformer()
-    
+
+    # ✅ ダミーデータを1回流して `output_shape` を確定させる
+    dummy_input = np.random.rand(1, 10, 16).astype(np.float32)  # (バッチサイズ=1, シーケンス長=10, 特徴次元=16)
+    _ = transformer(dummy_input, training=False)  # モデルを1回呼び出す
+
     # ✅ 学習ログを記録するコールバックを作成
     training_logger = TrainingLogger(
         model=transformer,
@@ -133,19 +137,5 @@ if __name__ == "__main__":
         f.write(f"\n=== テスト結果 ===\n")
         f.write(f"Test Loss: {test_loss:.6f}\n")
         f.write(f"Test MSE: {test_mse:.6f}\n")
-
-    print("=== モデルの保存 ===")
-    transformer.save("transformer_model", save_format="tf")
-
-    print("=== モデルの予測と保存を開始 ===")
-
-    # ✅ テスト結果を保存するインスタンスを作成
-    test_saver = TestResultSaver(save_dir="test_results/Transformer_test_results")
-
-    # ✅ 修正: test_dataset, transformer, y_min, y_max を渡して処理
-    test_saver.save_results(test_dataset, transformer, y_min, y_max)
-
-    # ✅ LossLogger を使って Test Loss を記録
-    loss_logger.save_test_loss(test_loss)
 
     print("=== 学習ログが 'training_summary.txt' に保存されました ===")
