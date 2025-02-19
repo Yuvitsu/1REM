@@ -54,7 +54,7 @@ def build_lstm(input_shape):
     model.build(input_shape=(None,) + input_shape)
     
     # ✅ Optimizer を Adam に変更
-    optimizer = keras.optimizers.Adam(learning_rate=0.001)
+    optimizer = keras.optimizers.Adam(learning_rate=0.0001)
     model.compile(
         optimizer=optimizer,
         loss="mse",  # ✅ 損失関数は MSE
@@ -76,7 +76,7 @@ if __name__ == "__main__":
     y_min, y_max = np.min(y_label), np.max(y_label)
 
     print("=== データセットの作成を開始 ===")
-    data_processor = DataProcessor(x_data, y_label, batch_size=32)
+    data_processor = DataProcessor(x_data, y_label, batch_size=64)
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     sample_input_shape = x_data.shape[1:]
