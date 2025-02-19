@@ -58,7 +58,8 @@ def build_conv_lstm(input_shape):
 # --- メイン処理 ---
 if __name__ == "__main__":
     print("=== データの作成を開始 ===")
-    data_loader = DataLoader(data_dir="Data_Label/Gym")
+    data_loader = DataLoader(data_dir="Data_Label/E420")
+    print("E420データセット")
     x_data, y_label = data_loader.load_data()
 
     # ✅ 学習時の x_data, y_label の min/max を取得
