@@ -33,7 +33,7 @@ model = keras.models.load_model("deep_transformer_model")  # 事前に学習済�
 history = model.fit(
     train_dataset,
     validation_data=val_dataset,
-    epochs=1,
+    epochs=50,
     callbacks=[loss_logger]
 )
 
@@ -45,4 +45,4 @@ final_val_mse = history.history['val_mse'][-1]
 test_loss, test_mse = model.evaluate(test_dataset)
 
 # ✅ 学習情報を保存
-summary_saver.save_summary(batch_size, final_train_mse, final_val_mse, test_mse, model)
+summary_saver.save_summary(batch_size, final_train_mse, final_val_mse, test_mse, model,)
