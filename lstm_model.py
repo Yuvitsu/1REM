@@ -19,34 +19,22 @@ save_dir = "test_results/LSTM_results"
 loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
 
 # --- LSTM モデルの構築 ---
-class LSTMModel(keras.Model):
-    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.3):
-        super(LSTMModel, self).__init__()
-
-        # ✅ 各 LSTM 層を個別に定義
-        self.lstm1 = layers.LSTM(num_units, return_sequences=True, activation="tanh",
-                                 dropout=dropout_rate, recurrent_dropout=dropout_rate)
-
-        self.lstm2 = layers.LSTM(num_units, return_sequences=True, activation="tanh",
-                                 dropout=dropout_rate, recurrent_dropout=dropout_rate)
-
-        self.lstm3 = layers.LSTM(num_units, return_sequences=False, activation="tanh",
-                                 dropout=dropout_rate, recurrent_dropout=dropout_rate)
-
-        # ✅ 出力層
-        self.output_layer = layers.Dense(6, activation="linear")
-
-    def call(self, inputs, training=False):
-        x = self.lstm1(inputs, training=training)
-        x = self.lstm2(x, training=training)
-        x = self.lstm3(x, training=training)
-        return self.output_layer(x)
-
-# --- モデルのコンパイル ---
 def build_lstm(input_shape):
-    model = LSTMModel()
+    inputs = keras.Input(shape=input_shape)
+
+    x = layers.LSTM(128, return_sequences=True, activation="tanh",
+                    dropout=0.3, recurrent_dropout=0.3)(inputs)
+    x = layers.LSTM(128, return_sequences=True, activation="tanh",
+                    dropout=0.3, recurrent_dropout=0.3)(x)
+    x = layers.LSTM(128, return_sequences=False, activation="tanh",
+                    dropout=0.3, recurrent_dropout=0.3)(x)
+
+    outputs = layers.Dense(6, activation="linear")(x)
+    model = keras.Model(inputs, outputs)
+
     optimizer = keras.optimizers.Adam(learning_rate=0.0001)
     model.compile(optimizer=optimizer, loss="mse", metrics=["mse"])
+    
     return model, optimizer
 
 # --- メイン処理 ---
@@ -62,9 +50,13 @@ if __name__ == "__main__":
     print("=== LSTM モデルの構築 ===")
     lstm_model, optimizer = build_lstm(sample_input_shape)
 
-    # ✅ ダミーデータを流して output_shape を確定
+    # ✅ モデルを明示的に `build()` し、ダミーデータを通す
+    lstm_model.build(input_shape=(None,) + sample_input_shape)
     dummy_input = np.random.rand(1, *sample_input_shape).astype(np.float32)  # (1, シーケンス長, 特徴次元)
     lstm_model(dummy_input, training=False)  # ✅ ここで `output_shape` を確定
+
+    # ✅ `model.summary()` を実行して確実に `output_shape` を確定
+    lstm_model.summary()
 
     # ✅ TrainingLogger を作成し、設定を保存
     training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, save_dir)

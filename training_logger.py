@@ -24,5 +24,6 @@ class TrainingLogger:
 
             # 各層の構造を保存
             for layer in self.model.layers:
-                layer_info = f"{layer.__class__.__name__}: {layer.output_shape if layer.built else '未定義'}"
+                layer_output_shape = getattr(layer, 'output_shape', '未定義')  # ✅ `getattr()` で `AttributeError` を回避
+                layer_info = f"{layer.__class__.__name__}: {layer_output_shape}"
                 f.write(layer_info + "\n")
