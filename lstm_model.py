@@ -91,7 +91,7 @@ if __name__ == "__main__":
 
     # ✅ 設定を記録する `TrainingLogger` を作成し、設定を保存
     training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, save_dir)
-    training_logger.save_config(input_shape=sample_input_shape)
+    training_logger.save_config()
 
     print("=== モデルの学習を開始 ===")
     lstm_model.fit(
