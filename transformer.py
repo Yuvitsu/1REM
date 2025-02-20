@@ -4,8 +4,9 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
-from loss_logger import LossLogger  # ✅ 損失を記録するクラス
+from loss_logger import LossLogger
 from test_result_save import TestResultSaver
+from training_logger import TrainingLogger  # ✅ クラス名を変更してインポート
 import numpy as np
 
 # ✅ 保存先ディレクトリを指定
@@ -81,12 +82,13 @@ class TimeSeriesTransformer(keras.Model):
 # --- モデルのコンパイル ---
 def build_transformer():
     model = TimeSeriesTransformer()
+    optimizer = keras.optimizers.Adam(learning_rate=0.001)  # ✅ 最適化関数を変数に保存
     model.compile(
-        optimizer=keras.optimizers.Adam(learning_rate=0.001),
+        optimizer=optimizer,
         loss="mse",
         metrics=["mse"]
     )
-    return model
+    return model, optimizer  # ✅ 最適化関数を返す
 
 # --- モデルの学習と損失の記録 ---
 if __name__ == "__main__":
@@ -100,18 +102,24 @@ if __name__ == "__main__":
     y_min, y_max = np.min(y_label), np.max(y_label)
 
     # ✅ 正規化付きデータセットの作成（Min-Max 正規化）
-    data_processor = DataProcessor(x_data, y_label, batch_size=32, normalization_method="minmax")
+    batch_size = 32
+    learning_rate = 0.001
+    data_processor = DataProcessor(x_data, y_label, batch_size=batch_size, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     # ✅ モデルの構築
-    transformer = build_transformer()
+    transformer, optimizer = build_transformer()  # ✅ 最適化関数も取得
+
+    # ✅ 設定を記録する `TrainingLogger` を作成し、設定を保存
+    training_logger = TrainingLogger(transformer, batch_size, learning_rate, optimizer, save_dir)
+    training_logger.save_config()
 
     print("=== モデルの学習を開始 ===")
     transformer.fit(
         train_dataset,
         validation_data=val_dataset,
         epochs=10,
-        callbacks=[loss_logger]  # ✅ 修正後の loss_logger を適用
+        callbacks=[loss_logger]
     )
 
     print("=== モデルの評価 ===")
@@ -120,16 +128,5 @@ if __name__ == "__main__":
 
     print("=== モデルの保存 ===")
     transformer.save("transformer_model", save_format="tf")
-
-    print("=== モデルの予測と保存を開始 ===")
-
-    # ✅ テスト結果を保存するインスタンスを作成
-    test_saver = TestResultSaver(save_dir=save_dir)
-
-    # ✅ 修正: test_dataset, transformer, y_min, y_max を渡して処理
-    test_saver.save_results(test_dataset, transformer, y_min, y_max)
-
-    # ✅ LossLogger を使って Test Loss を記録
-    loss_logger.save_test_loss(test_loss)
 
     print("=== 学習ログが 'test_results/Transformer_results' に保存されました ===")
