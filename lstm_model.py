@@ -22,7 +22,7 @@ tf.debugging.set_log_device_placement(False)  # デバイス配置ログを抑�
 # ✅ 保存先ディレクトリを統一
 save_dir = "test_results/LSTM_results"
 model_save_path = "lstm_model"
-epochs = 100  # ✅ エポック数を変数化
+epochs = 1  # ✅ エポック数を変数化
 
 # ✅ LossLogger のインスタンスを作成（保存パスを指定）
 loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
