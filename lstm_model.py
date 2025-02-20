@@ -20,30 +20,30 @@ loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
 
 # --- LSTM モデルの構築 ---
 class LSTMModel(keras.Model):
-    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.3):  # ✅ dropout_rate を 0.3 に設定
+    def __init__(self, num_units=128, num_layers=3, dropout_rate=0.3):
         super(LSTMModel, self).__init__()
         self.lstm_layers = []
 
-        # ✅ 1層目の LSTM（ドロップアウト追加）
+        # 1層目の LSTM
         self.lstm_layers.append(layers.LSTM(
             num_units, return_sequences=True, activation="tanh",
             dropout=dropout_rate, recurrent_dropout=dropout_rate
         ))
 
-        # ✅ 中間の LSTM 層（ドロップアウト追加）
+        # 中間の LSTM 層
         for _ in range(num_layers - 2):
             self.lstm_layers.append(layers.LSTM(
                 num_units, return_sequences=True, activation="tanh",
                 dropout=dropout_rate, recurrent_dropout=dropout_rate
             ))
 
-        # ✅ 最後の LSTM 層（ドロップアウト追加）
+        # 最後の LSTM 層
         self.lstm_layers.append(layers.LSTM(
             num_units, return_sequences=False, activation="tanh",
             dropout=dropout_rate, recurrent_dropout=dropout_rate
         ))
 
-        # ✅ 出力層
+        # 出力層
         self.output_layer = layers.Dense(6, activation="linear")
 
     def call(self, inputs, training=False):
@@ -55,52 +55,35 @@ class LSTMModel(keras.Model):
 # --- モデルのコンパイル ---
 def build_lstm(input_shape):
     model = LSTMModel()
-    model.build(input_shape=(None,) + input_shape)
-
-    # ✅ Optimizer を Adam に変更
     optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-    model.compile(
-        optimizer=optimizer,
-        loss="mse",  # ✅ 損失関数は MSE
-        metrics=["mse"]  # ✅ 評価指標も MSE
-    )
-    return model, optimizer  # ✅ 最適化関数も返す
+    model.compile(optimizer=optimizer, loss="mse", metrics=["mse"])
+    return model, optimizer
 
 # --- メイン処理 ---
 if __name__ == "__main__":
     print("=== データの作成を開始 ===")
     data_loader = DataLoader(data_dir="Data_Label/E420")
-    print("Data_Label/E420")
     x_data, y_label = data_loader.load_data()
 
-    # ✅ 学習時の x_data, y_label の min/max を取得
-    x_min, x_max = np.min(x_data), np.max(x_data)
-    y_min, y_max = np.min(y_label), np.max(y_label)
-
-    print("=== データセットの作成を開始 ===")
     batch_size = 64
     learning_rate = 0.0001
-    data_processor = DataProcessor(x_data, y_label, batch_size=batch_size)
-    train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
-
     sample_input_shape = x_data.shape[1:]
 
     print("=== LSTM モデルの構築 ===")
-    lstm_model, optimizer = build_lstm(sample_input_shape)  # ✅ 最適化関数も取得
-    lstm_model.summary()
+    lstm_model, optimizer = build_lstm(sample_input_shape)
 
-   # ✅ 設定を記録する `TrainingLogger` を作成
+    # ✅ ダミーデータを流して output_shape を確定
+    dummy_input = np.random.rand(1, *sample_input_shape).astype(np.float32)  # (1, シーケンス長, 特徴次元)
+    _ = lstm_model(dummy_input)
+
+    # ✅ TrainingLogger を作成し、設定を保存
     training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, save_dir)
-
-    # ✅ モデルの `output_shape` を確定させるために、ダミーデータを流す
-    dummy_input = np.random.rand(1, *sample_input_shape).astype(np.float32)  # (バッチサイズ=1, シーケンス長, 特徴数)
-    _ = lstm_model(dummy_input, training=False)  # ✅ モデルを1回呼び出して `output_shape` を確定
-
-    # ✅ 設定を保存
     training_logger.save_config()
 
-
     print("=== モデルの学習を開始 ===")
+    data_processor = DataProcessor(x_data, y_label, batch_size=batch_size)
+    train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
+
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
@@ -116,14 +99,8 @@ if __name__ == "__main__":
     lstm_model.save("lstm_model", save_format="tf")
 
     print("=== モデルの予測と保存を開始 ===")
-
-    # ✅ テスト結果を保存するインスタンスを作成
     test_saver = TestResultSaver(save_dir=save_dir)
+    test_saver.save_results(test_dataset, lstm_model, np.min(y_label), np.max(y_label))
 
-    # ✅ 修正: test_dataset, lstm_model, y_min, y_max を渡して処理
-    test_saver.save_results(test_dataset, lstm_model, y_min, y_max)
-
-    # ✅ LossLogger を使って Test Loss を記録
     loss_logger.save_test_loss(test_loss)
-
     print("=== 学習ログが 'test_results/LSTM_results' に保存されました ===")
