@@ -89,9 +89,16 @@ if __name__ == "__main__":
     lstm_model, optimizer = build_lstm(sample_input_shape)  # ✅ 最適化関数も取得
     lstm_model.summary()
 
-    # ✅ 設定を記録する `TrainingLogger` を作成し、設定を保存
+   # ✅ 設定を記録する `TrainingLogger` を作成
     training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, save_dir)
+
+    # ✅ モデルの `output_shape` を確定させるために、ダミーデータを流す
+    dummy_input = np.random.rand(1, *sample_input_shape).astype(np.float32)  # (バッチサイズ=1, シーケンス長, 特徴数)
+    _ = lstm_model(dummy_input, training=False)  # ✅ モデルを1回呼び出して `output_shape` を確定
+
+    # ✅ 設定を保存
     training_logger.save_config()
+
 
     print("=== モデルの学習を開始 ===")
     lstm_model.fit(
