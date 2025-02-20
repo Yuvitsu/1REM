@@ -56,7 +56,7 @@ class LSTMModel(keras.Model):
 def build_lstm(input_shape):
     model = LSTMModel()
     optimizer = keras.optimizers.Adam(learning_rate=0.0001)
-    model.compile(optimizer=optimizer, loss="mse", metrics=["mse"])
+    model.build(input_shape=(None,) + input_shape)  # ✅ 明示的に build()
     return model, optimizer
 
 # --- メイン処理 ---
@@ -74,11 +74,11 @@ if __name__ == "__main__":
 
     # ✅ ダミーデータを流して output_shape を確定
     dummy_input = np.random.rand(1, *sample_input_shape).astype(np.float32)  # (1, シーケンス長, 特徴次元)
-    _ = lstm_model(dummy_input)
+    lstm_model(dummy_input, training=False)  # ✅ モデルにデータを通して output_shape を確定
 
     # ✅ TrainingLogger を作成し、設定を保存
     training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, save_dir)
-    training_logger.save_config()
+    training_logger.save_config()  # ✅ ここで `output_shape` は確定している
 
     print("=== モデルの学習を開始 ===")
     data_processor = DataProcessor(x_data, y_label, batch_size=batch_size)
