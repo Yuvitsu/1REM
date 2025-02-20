@@ -45,6 +45,11 @@ if __name__ == "__main__":
 
     batch_size = 64
     learning_rate = 0.0001
+
+    # ✅ x, y の最小値・最大値を取得
+    x_min, x_max = np.min(x_data), np.max(x_data)
+    y_min, y_max = np.min(y_label), np.max(y_label)
+
     sample_input_shape = x_data.shape[1:]
 
     print("=== LSTM モデルの構築 ===")
@@ -59,7 +64,7 @@ if __name__ == "__main__":
     lstm_model.summary()
 
     # ✅ TrainingLogger を作成し、設定を保存
-    training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, save_dir)
+    training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, x_min, x_max, y_min, y_max, save_dir)
     training_logger.save_config()
 
     print("=== モデルの学習を開始 ===")
