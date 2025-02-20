@@ -4,12 +4,15 @@ from tensorflow import keras
 from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
-from loss_logger import LossLogger
+from loss_logger import LossLogger  # ✅ 損失を記録するクラス
 from test_result_save import TestResultSaver
 import numpy as np
 
-# ✅ LossLogger のインスタンスを作成（ディレクトリごとに保存可能）
-loss_logger = LossLogger(model_name="transformer_model")
+# ✅ 保存先ディレクトリを指定
+save_dir = "test_results/Transformer_results"
+
+# ✅ LossLogger のインスタンスを作成（保存パスを指定）
+loss_logger = LossLogger(model_name="transformer_model", save_dir=save_dir)
 
 # --- 位置エンコーディング ---
 class PositionalEncoding(layers.Layer):
@@ -102,13 +105,13 @@ if __name__ == "__main__":
 
     # ✅ モデルの構築
     transformer = build_transformer()
-    
+
     print("=== モデルの学習を開始 ===")
     transformer.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=1,
-        callbacks=[loss_logger]  # ✅ コールバックを修正
+        epochs=10,
+        callbacks=[loss_logger]  # ✅ 修正後の loss_logger を適用
     )
 
     print("=== モデルの評価 ===")
@@ -121,10 +124,12 @@ if __name__ == "__main__":
     print("=== モデルの予測と保存を開始 ===")
 
     # ✅ テスト結果を保存するインスタンスを作成
-    save_dir="test_results/Transformer_results"
     test_saver = TestResultSaver(save_dir=save_dir)
 
     # ✅ 修正: test_dataset, transformer, y_min, y_max を渡して処理
     test_saver.save_results(test_dataset, transformer, y_min, y_max)
-    # ✅ LossLogger のインスタンスを作成（保存パスを指定）
-    loss_logger = LossLogger(model_name="transformer_model", save_dir=save_dir)
+
+    # ✅ LossLogger を使って Test Loss を記録
+    loss_logger.save_test_loss(test_loss)
+
+    print("=== 学習ログが 'test_results/Transformer_results' に保存されました ===")
