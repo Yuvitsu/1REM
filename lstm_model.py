@@ -57,8 +57,8 @@ if __name__ == "__main__":
 
     # ✅ モデルを明示的に `build()` し、ダミーデータを通す
     lstm_model.build(input_shape=(None,) + sample_input_shape)
-    dummy_input = np.random.rand(1, *sample_input_shape).astype(np.float32)  # (1, シーケンス長, 特徴次元)
-    lstm_model(dummy_input, training=False)  # ✅ ここで `output_shape` を確定
+    dummy_input = np.random.rand(1, 10, 6).astype(np.float32)  # ✅ 明示的に (1, 10, 6) に修正
+    lstm_model.predict(dummy_input)  # ✅ `predict()` で推論実行し `output_shape` を確定
 
     # ✅ `model.summary()` を実行して確実に `output_shape` を確定
     lstm_model.summary()
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=1,
+        epochs=100,
         callbacks=[loss_logger]
     )
 
