@@ -6,7 +6,7 @@ from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from loss_logger import LossLogger
 from test_result_save import TestResultSaver
-from training_logger import TrainingLogger  # ✅ 学習設定を保存するクラス
+from training_logger import TrainingLogger
 import numpy as np
 
 # ✅ TensorFlow のデバッグメッセージを抑制
@@ -22,34 +22,24 @@ loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
 class LSTMModel(keras.Model):
     def __init__(self, num_units=128, num_layers=3, dropout_rate=0.3):
         super(LSTMModel, self).__init__()
-        self.lstm_layers = []
 
-        # 1層目の LSTM
-        self.lstm_layers.append(layers.LSTM(
-            num_units, return_sequences=True, activation="tanh",
-            dropout=dropout_rate, recurrent_dropout=dropout_rate
-        ))
+        # ✅ 各 LSTM 層を個別に定義
+        self.lstm1 = layers.LSTM(num_units, return_sequences=True, activation="tanh",
+                                 dropout=dropout_rate, recurrent_dropout=dropout_rate)
 
-        # 中間の LSTM 層
-        for _ in range(num_layers - 2):
-            self.lstm_layers.append(layers.LSTM(
-                num_units, return_sequences=True, activation="tanh",
-                dropout=dropout_rate, recurrent_dropout=dropout_rate
-            ))
+        self.lstm2 = layers.LSTM(num_units, return_sequences=True, activation="tanh",
+                                 dropout=dropout_rate, recurrent_dropout=dropout_rate)
 
-        # 最後の LSTM 層
-        self.lstm_layers.append(layers.LSTM(
-            num_units, return_sequences=False, activation="tanh",
-            dropout=dropout_rate, recurrent_dropout=dropout_rate
-        ))
+        self.lstm3 = layers.LSTM(num_units, return_sequences=False, activation="tanh",
+                                 dropout=dropout_rate, recurrent_dropout=dropout_rate)
 
-        # 出力層
+        # ✅ 出力層
         self.output_layer = layers.Dense(6, activation="linear")
 
     def call(self, inputs, training=False):
-        x = inputs
-        for layer in self.lstm_layers:
-            x = layer(x, training=training)
+        x = self.lstm1(inputs, training=training)
+        x = self.lstm2(x, training=training)
+        x = self.lstm3(x, training=training)
         return self.output_layer(x)
 
 # --- モデルのコンパイル ---
@@ -76,13 +66,9 @@ if __name__ == "__main__":
     dummy_input = np.random.rand(1, *sample_input_shape).astype(np.float32)  # (1, シーケンス長, 特徴次元)
     lstm_model(dummy_input, training=False)  # ✅ ここで `output_shape` を確定
 
-    # ✅ 各レイヤーの `built` 状態を確認（デバッグ用）
-    for layer in lstm_model.layers:
-        print(f"Layer {layer.name}: built={layer.built}, output_shape={getattr(layer, 'output_shape', '未定義')}")
-
     # ✅ TrainingLogger を作成し、設定を保存
     training_logger = TrainingLogger(lstm_model, batch_size, learning_rate, optimizer, save_dir)
-    training_logger.save_config()  # ✅ ここで `output_shape` は確定している
+    training_logger.save_config()
 
     print("=== モデルの学習を開始 ===")
     data_processor = DataProcessor(x_data, y_label, batch_size=batch_size)
