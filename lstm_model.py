@@ -1,4 +1,7 @@
 import os
+import sys
+import logging
+import warnings
 import tensorflow as tf
 from tensorflow import keras
 from tensorflow.keras import layers
@@ -9,11 +12,17 @@ from test_result_save import TestResultSaver
 from training_logger import TrainingLogger
 import numpy as np
 
-# ✅ TensorFlow のデバッグメッセージを抑制
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+# ✅ TensorFlow のデバッグ情報を完全に抑制
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # TensorFlow のログレベルを ERROR のみに設定
+tf.get_logger().setLevel('ERROR')
+warnings.filterwarnings("ignore")  # Python レベルの警告を無効化
+logging.getLogger('tensorflow').setLevel(logging.ERROR)
+tf.debugging.set_log_device_placement(False)  # デバイス配置ログを抑制
 
 # ✅ 保存先ディレクトリを統一
 save_dir = "test_results/LSTM_results"
+model_save_path = "lstm_model"
+epochs = 100  # ✅ エポック数を変数化
 
 # ✅ LossLogger のインスタンスを作成（保存パスを指定）
 loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
@@ -57,7 +66,7 @@ if __name__ == "__main__":
 
     # ✅ モデルを明示的に `build()` し、ダミーデータを通す
     lstm_model.build(input_shape=(None,) + sample_input_shape)
-    dummy_input = np.random.rand(1, 10, 6).astype(np.float32)  # ✅ 明示的に (1, 10, 6) に修正
+    dummy_input = np.zeros((1, 10, 6), dtype=np.float32)  # ✅ すべてゼロのダミーデータ
     lstm_model.predict(dummy_input)  # ✅ `predict()` で推論実行し `output_shape` を確定
 
     # ✅ `model.summary()` を実行して確実に `output_shape` を確定
@@ -74,7 +83,7 @@ if __name__ == "__main__":
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=1,
+        epochs=epochs,  # ✅ 変数を使う
         callbacks=[loss_logger]
     )
 
@@ -83,11 +92,11 @@ if __name__ == "__main__":
     print(f"Test Loss: {test_loss}, Test MSE: {test_mse}")
 
     print("=== モデルの保存 ===")
-    lstm_model.save("lstm_model", save_format="tf")
+    lstm_model.save(model_save_path, save_format="tf")
 
     print("=== モデルの予測と保存を開始 ===")
     test_saver = TestResultSaver(save_dir=save_dir)
     test_saver.save_results(test_dataset, lstm_model, np.min(y_label), np.max(y_label))
 
     loss_logger.save_test_loss(test_loss)
-    print("=== 学習ログが 'test_results/LSTM_results' に保存されました ===")
+    print(f"=== 学習ログが '{save_dir}' に保存されました ===")
