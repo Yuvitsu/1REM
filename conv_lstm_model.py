@@ -114,7 +114,7 @@ if __name__ == "__main__":
     conv_lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=1,
+        epochs=100,
         callbacks=[loss_logger]
     )
 
