@@ -49,7 +49,7 @@ def build_lstm(input_shape):
 
     model = keras.Model(inputs, x)
 
-    optimizer = keras.optimizers.Adam(learning_rate=0.0001)
+    optimizer = keras.optimizers.Adam(learning_rate=0.001)
     model.compile(optimizer=optimizer, loss="mse", metrics=["mse"])
     
     return model, optimizer
