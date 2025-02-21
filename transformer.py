@@ -122,7 +122,7 @@ if __name__ == "__main__":
     transformer.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=50,
+        epochs=1,
         callbacks=[loss_logger]
     )
 
