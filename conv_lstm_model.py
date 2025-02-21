@@ -11,21 +11,25 @@ from rssi_interpolator import RSSIInterpolator
 from loss_logger import LossLogger
 from test_result_save import TestResultSaver
 from tf_dataset_builder import TFDatasetBuilder
+from training_logger import TrainingLogger  # ✅ TrainingLogger をインポート
 
 # ✅ TensorFlow のデバッグメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+
+# ✅ 保存ディレクトリを統一
+save_dir = "test_results/Conv_LSTM_model"
+os.makedirs(save_dir, exist_ok=True)
 
 # ✅ メモリを解放してからモデルを作成
 K.clear_session()
 gc.collect()
 
-# ✅ LossLogger のインスタンスを作成
-loss_logger = LossLogger(model_name="conv_lstm_model")
+# ✅ LossLogger のインスタンスを作成（保存先を統一）
+loss_logger = LossLogger(model_name=os.path.join(save_dir, "loss_log"))
 
 # --- ConvLSTM モデルの構築 ---
 def build_conv_lstm(input_shape):
     model = keras.Sequential([
-        # ✅ ConvLSTM2D 層（ConvGRU2D から変更）
         layers.ConvLSTM2D(filters=64, kernel_size=(4, 4), padding="same", return_sequences=True, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
@@ -34,17 +38,14 @@ def build_conv_lstm(input_shape):
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
-        # ✅ Conv層1（フィルター数 16）
         layers.Conv2D(filters=16, kernel_size=(4, 4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
-        # ✅ Conv層2（フィルター数 8）
         layers.Conv2D(filters=8, kernel_size=(4, 4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
-        # ✅ Conv層3（出力層: 1フィルター, Linear）
         layers.Conv2D(filters=1, kernel_size=(4, 4), activation="linear", padding="same")
     ])
 
@@ -68,17 +69,15 @@ if __name__ == "__main__":
 
     print("=== スプライン補間を適用 ===")
     interpolator = RSSIInterpolator(grid_size=(100, 100))
-    x_data_interp = np.array([interpolator.interpolate(sample) for sample in x_data])  # (サンプル数, 100, 100, 10, 6)
-    y_label_interp = np.array([interpolator.interpolate(sample) for sample in y_label])  # (サンプル数, 100, 100)
+    x_data_interp = np.array([interpolator.interpolate(sample) for sample in x_data])
+    y_label_interp = np.array([interpolator.interpolate(sample) for sample in y_label])
 
     # ✅ x_data_interp にチャンネル次元を追加 (5D テンソルにする)
-    x_data_interp = x_data_interp[..., np.newaxis]  # (31513, 10, 100, 100, 1)
-
-    # ✅ y_label の形状を (サンプル数, 100, 100, 1) に変換
+    x_data_interp = x_data_interp[..., np.newaxis]
     y_label_interp = y_label_interp.reshape(-1, 100, 100, 1)
 
-    print("x_data_interp.shape:", x_data_interp.shape)  # 期待: (31513, 10, 100, 100, 1)
-    print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (31513, 100, 100, 1)
+    print("x_data_interp.shape:", x_data_interp.shape)
+    print("y_label_interp.shape:", y_label_interp.shape)
 
     print("=== データセットの作成を開始 ===")
     data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=16, normalization_method="minmax")
@@ -97,11 +96,25 @@ if __name__ == "__main__":
     conv_lstm_model = build_conv_lstm(sample_input_shape)
     conv_lstm_model.summary()
 
+    # ✅ TrainingLogger のインスタンスを作成し、学習設定を保存（パスを統一）
+    training_logger = TrainingLogger(
+        model=conv_lstm_model,
+        batch_size=16,
+        learning_rate=0.0001,
+        optimizer=keras.optimizers.Adam(learning_rate=0.0001),
+        x_min=x_min,
+        x_max=x_max,
+        y_min=y_min,
+        y_max=y_max,
+        save_dir=save_dir  # ✅ 統一したディレクトリを指定
+    )
+    training_logger.save_config()  # ✅ 設定を txt に保存
+
     print("=== モデルの学習を開始 ===")
     conv_lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=50,
+        epochs=1,
         callbacks=[loss_logger]
     )
 
@@ -110,12 +123,12 @@ if __name__ == "__main__":
     print(f"Test Loss: {test_loss}, Test MSE: {test_mse}")
 
     print("=== モデルの保存 ===")
-    conv_lstm_model.save("conv_lstm_model", save_format="tf")
+    conv_lstm_model.save(os.path.join(save_dir, "conv_lstm_model"), save_format="tf")  # ✅ 保存パスを統一
 
     print("=== モデルの予測と保存を開始 ===")
 
-    # ✅ テスト結果を保存するインスタンスを作成
-    test_saver = TestResultSaver(save_dir="test_results")
+    # ✅ テスト結果を保存するインスタンスを作成（保存先を統一）
+    test_saver = TestResultSaver(save_dir=save_dir)
 
     # ✅ 予測結果の保存
     test_saver.save_results(test_dataset, conv_lstm_model, y_min, y_max)
