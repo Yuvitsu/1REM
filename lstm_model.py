@@ -28,8 +28,7 @@ epochs = 50  # ✅ エポック数を変数化
 loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
 
 # --- LSTM モデルの構築 ---
-# --- LSTM モデルの構築 ---
-def build_lstm(input_shape):
+def build_lstm(input_shape, learning_rate):
     inputs = keras.Input(shape=input_shape)
 
     x = layers.LSTM(128, return_sequences=True, activation="tanh",
@@ -49,11 +48,11 @@ def build_lstm(input_shape):
 
     model = keras.Model(inputs, x)
 
-    optimizer = keras.optimizers.Adam(learning_rate=0.001)
+    # ✅ 学習率を main から渡せるように修正
+    optimizer = keras.optimizers.Adam(learning_rate=learning_rate)
     model.compile(optimizer=optimizer, loss="mse", metrics=["mse"])
     
     return model, optimizer
-
 
 # --- メイン処理 ---
 if __name__ == "__main__":
@@ -62,7 +61,7 @@ if __name__ == "__main__":
     x_data, y_label = data_loader.load_data()
 
     batch_size = 64
-    learning_rate = 0.0001
+    learning_rate = 0.001  # ✅ ここで学習率を定義し、LSTM に渡す
 
     # ✅ x, y の最小値・最大値を取得
     x_min, x_max = np.min(x_data), np.max(x_data)
@@ -71,7 +70,8 @@ if __name__ == "__main__":
     sample_input_shape = x_data.shape[1:]
 
     print("=== LSTM モデルの構築 ===")
-    lstm_model, optimizer = build_lstm(sample_input_shape)
+    # ✅ `learning_rate` を渡して LSTM の学習率を設定
+    lstm_model, optimizer = build_lstm(sample_input_shape, learning_rate)
 
     # ✅ モデルを明示的に `build()` し、ダミーデータを通す
     lstm_model.build(input_shape=(None,) + sample_input_shape)
