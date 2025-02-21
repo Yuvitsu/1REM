@@ -1,4 +1,3 @@
-# 一旦完成か
 import os
 import tensorflow as tf
 from tensorflow import keras
@@ -7,7 +6,7 @@ from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from loss_logger import LossLogger
 from test_result_save import TestResultSaver
-from training_logger import TrainingLogger  # ✅ クラス名を変更してインポート
+from training_logger import TrainingLogger
 import numpy as np
 
 # ✅ 保存先ディレクトリを指定
@@ -111,11 +110,13 @@ if __name__ == "__main__":
     # ✅ モデルの構築
     transformer, optimizer = build_transformer()  # ✅ 最適化関数も取得
 
-    # ✅ 設定を記録する `TrainingLogger` を作成し、設定を保存
-    # ✅ 設定を記録する `TrainingLogger` を作成し、設定を保存
-    training_logger = TrainingLogger(transformer, batch_size, learning_rate, optimizer, x_min, x_max, y_min, y_max, save_dir)
-    training_logger.save_config()
+    # ✅ モデルを明示的に build() する（修正点）
+    sample_input_shape = (None, 10, x_data.shape[-1])  # (batch_size, sequence_length, feature_dim)
+    transformer.build(input_shape=sample_input_shape)
 
+    # ✅ 設定を記録する `TrainingLogger` を作成し、設定を保存
+    training_logger = TrainingLogger(transformer, batch_size, learning_rate, optimizer, x_max, y_min, y_max, save_dir)
+    training_logger.save_config()
 
     print("=== モデルの学習を開始 ===")
     transformer.fit(
