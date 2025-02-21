@@ -34,7 +34,7 @@ def build_conv_lstm(input_shape):
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
-        layers.ConvLSTM2D(filters=32, kernel_size=(4, 4), padding="same", return_sequences=False, activation="tanh"),
+        layers.Conv2D(filters=32, kernel_size=(4, 4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 

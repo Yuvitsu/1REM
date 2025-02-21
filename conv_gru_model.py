@@ -13,43 +13,43 @@ from test_result_save import TestResultSaver
 from tf_dataset_builder import TFDatasetBuilder
 from ConvGRU import ConvGRU2D  # ✅ ConvGRU2D のインポート
 
-# ✅ TensorFlow のデバッグメッセージを抑制
+# ✅ TensorFlow のログメッセージを抑制
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 
-# ✅ メモリを解放してからモデルを作成
+# ✅ メモリを解放し、クリーンな状態でモデルを作成
 K.clear_session()
 gc.collect()
 
-# ✅ LossLogger のインスタンスを作成
+# ✅ LossLogger のインスタンスを作成（学習時の損失を記録）
 loss_logger = LossLogger(model_name="conv_gru_model")
 
 # --- ConvGRU モデルの構築 ---
 def build_conv_gru(input_shape):
+    """ConvGRU2D をベースにした畳み込みリカレントニューラルネットワークを構築"""
     model = keras.Sequential([
-        # ✅ ConvGRU2D のフィルター数を削減
+        # ✅ ConvGRU2D 層
         ConvGRU2D(filters=64, kernel_size=(4,4), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
-        layers.Dropout(0.3),  # ✅ ConvGRU2D の後にドロップアウトを追加
+        layers.Dropout(0.3),
 
-        # ✅ Conv層1（フィルター数 32 → 16）
+        # ✅ 畳み込み層（特徴抽出）
         layers.Conv2D(filters=32, kernel_size=(4,4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
-        layers.Dropout(0.3),  # ✅ Conv2D の後にドロップアウトを追加
+        layers.Dropout(0.3),
 
-        # ✅ Conv層2（フィルター数 16 → 8）
         layers.Conv2D(filters=16, kernel_size=(4,4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
-        # ✅ Conv層3（フィルター数 8 → 4）
         layers.Conv2D(filters=8, kernel_size=(4,4), activation="tanh", padding="same"),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
-        # ✅ Conv層4（出力層: 1フィルター, Linear）
+        # ✅ 出力層（線形活性化関数を使用）
         layers.Conv2D(filters=1, kernel_size=(4,4), activation="linear", padding="same")
     ])
 
+    # ✅ モデルのコンパイル
     model.compile(
         optimizer=keras.optimizers.Adam(learning_rate=0.0001),
         loss="mse",
@@ -59,11 +59,11 @@ def build_conv_gru(input_shape):
 
 # --- メイン処理 ---
 if __name__ == "__main__":
-    print("=== データの作成を開始 ===")
-    data_loader = DataLoader(data_dir="Data_Label/E420") # E420
+    print("=== データの読み込み開始 ===")
+    data_loader = DataLoader(data_dir="Data_Label/E420")  # ✅ E420 データセットを使用
     x_data, y_label = data_loader.load_data()
 
-    # ✅ 学習時の x_data, y_label の min/max を取得
+    # ✅ 入力データとラベルの最小・最大値を取得（正規化のため）
     x_min, x_max = np.min(x_data), np.max(x_data)
     y_min, y_max = np.min(y_label), np.max(y_label)
 
@@ -72,32 +72,33 @@ if __name__ == "__main__":
     x_data_interp = np.array([interpolator.interpolate(sample) for sample in x_data])  # (サンプル数, 100, 100, 10, 6)
     y_label_interp = np.array([interpolator.interpolate(sample) for sample in y_label])  # (サンプル数, 100, 100)
 
-    # ✅ x_data_interp にチャンネル次元を追加 (5D テンソルにする)
-    x_data_interp = x_data_interp[..., np.newaxis]  # (31513, 10, 100, 100, 1)
+    # ✅ 入力データの次元を調整（5D テンソルに変換）
+    x_data_interp = x_data_interp[..., np.newaxis]  # (サンプル数, 10, 100, 100, 1)
 
-    # ✅ y_label の形状を (サンプル数, 100, 100, 1) に変換
+    # ✅ ラベルの形状を (サンプル数, 100, 100, 1) に変換
     y_label_interp = y_label_interp.reshape(-1, 100, 100, 1)
 
-    print("x_data_interp.shape:", x_data_interp.shape)  # 期待: (31513, 10, 100, 100, 1)
-    print("y_label_interp.shape:", y_label_interp.shape)  # 期待: (31513, 100, 100, 1)
+    print("x_data_interp.shape:", x_data_interp.shape)  # 期待される形状: (31513, 10, 100, 100, 1)
+    print("y_label_interp.shape:", y_label_interp.shape)  # 期待される形状: (31513, 100, 100, 1)
 
-    print("=== データセットの作成を開始 ===")
+    print("=== データセットの作成開始 ===")
     data_processor = DataProcessor(x_data_interp, y_label_interp, batch_size=16, normalization_method="minmax")
     train_dataset, val_dataset, test_dataset = data_processor.get_datasets()
 
     # ✅ 不要なデータを削除し、メモリを解放
     del x_data, y_label, x_data_interp, y_label_interp
     gc.collect()
-    # ✅ sample_input_shape を明示的に設定
+
+    # ✅ モデルの入力形状を定義
     time_steps = 10
     sample_input_shape = (time_steps, 100, 100, 1)
-    print("sample_input_shape", sample_input_shape)
+    print("sample_input_shape:", sample_input_shape)
 
     print("=== ConvGRU モデルの構築 ===")
     conv_gru_model = build_conv_gru(sample_input_shape)
     conv_gru_model.summary()
 
-    print("=== モデルの学習を開始 ===")
+    print("=== モデルの学習開始 ===")
     conv_gru_model.fit(
         train_dataset,
         validation_data=val_dataset,
@@ -105,14 +106,14 @@ if __name__ == "__main__":
         callbacks=[loss_logger]
     )
 
-    print("=== モデルの評価 ===")
+    print("=== モデルの評価開始 ===")
     test_loss, test_mse = conv_gru_model.evaluate(test_dataset)
     print(f"Test Loss: {test_loss}, Test MSE: {test_mse}")
 
     print("=== モデルの保存 ===")
     conv_gru_model.save("conv_gru_model", save_format="tf")
 
-    print("=== モデルの予測と保存を開始 ===")
+    print("=== モデルの予測と結果の保存開始 ===")
 
     # ✅ テスト結果を保存するインスタンスを作成
     test_saver = TestResultSaver(save_dir="test_results")
@@ -120,9 +121,9 @@ if __name__ == "__main__":
     # ✅ 予測結果の保存
     test_saver.save_results(test_dataset, conv_gru_model, y_min, y_max)
 
-    # ✅ LossLogger を使って Test Loss を記録
+    # ✅ テスト時の損失をログに保存
     loss_logger.save_test_loss(test_loss)
 
-    # ✅ 学習後のメモリ解放
+    # ✅ 学習後のメモリを解放
     K.clear_session()
     gc.collect()
