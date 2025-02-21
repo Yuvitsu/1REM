@@ -30,7 +30,7 @@ loss_logger = LossLogger(model_name=os.path.join(save_dir, "loss_log"))
 # --- ConvLSTM モデルの構築 ---
 def build_conv_lstm(input_shape):
     model = keras.Sequential([
-        layers.ConvLSTM2D(filters=64, kernel_size=(4, 4), padding="same", return_sequences=True, activation="tanh", input_shape=input_shape),
+        layers.ConvLSTM2D(filters=64, kernel_size=(4, 4), padding="same", return_sequences=False, activation="tanh", input_shape=input_shape),
         layers.BatchNormalization(),
         layers.Dropout(0.3),
 
