@@ -22,29 +22,38 @@ tf.debugging.set_log_device_placement(False)  # デバイス配置ログを抑�
 # ✅ 保存先ディレクトリを統一
 save_dir = "test_results/LSTM_results"
 model_save_path = "lstm_model"
-epochs = 200  # ✅ エポック数を変数化
+epochs = 50  # ✅ エポック数を変数化
 
 # ✅ LossLogger のインスタンスを作成（保存パスを指定）
 loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
 
+# --- LSTM モデルの構築 ---
 # --- LSTM モデルの構築 ---
 def build_lstm(input_shape):
     inputs = keras.Input(shape=input_shape)
 
     x = layers.LSTM(128, return_sequences=True, activation="tanh",
                     dropout=0.3, recurrent_dropout=0.3)(inputs)
+    x = layers.BatchNormalization()(x)  # ✅ LSTM 層の出力にバッチ正規化を適用
+
     x = layers.LSTM(128, return_sequences=True, activation="tanh",
                     dropout=0.3, recurrent_dropout=0.3)(x)
+    x = layers.BatchNormalization()(x)  # ✅ 2層目の LSTM の出力にも適用
+
     x = layers.LSTM(128, return_sequences=False, activation="tanh",
                     dropout=0.3, recurrent_dropout=0.3)(x)
+    x = layers.BatchNormalization()(x)  # ✅ 最終 LSTM 層の後にも適用
 
-    outputs = layers.Dense(6, activation="linear")(x)
-    model = keras.Model(inputs, outputs)
+    x = layers.Dense(6, activation="linear")(x)  # 出力層
+    x = layers.BatchNormalization()(x)  # ✅ 出力層の前にも適用
+
+    model = keras.Model(inputs, x)
 
     optimizer = keras.optimizers.Adam(learning_rate=0.0001)
     model.compile(optimizer=optimizer, loss="mse", metrics=["mse"])
     
     return model, optimizer
+
 
 # --- メイン処理 ---
 if __name__ == "__main__":
