@@ -115,7 +115,7 @@ if __name__ == "__main__":
     transformer.build(input_shape=sample_input_shape)
 
     # ✅ 設定を記録する `TrainingLogger` を作成し、設定を保存
-    training_logger = TrainingLogger(transformer, batch_size, learning_rate, optimizer, x_max, y_min, y_max, save_dir)
+    training_logger = TrainingLogger(transformer, batch_size, learning_rate, optimizer, x_min, x_max, y_min, y_max, save_dir)
     training_logger.save_config()
 
     print("=== モデルの学習を開始 ===")
