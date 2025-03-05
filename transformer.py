@@ -93,7 +93,7 @@ def build_transformer():
 # --- モデルの学習と損失の記録 ---
 if __name__ == "__main__":
     print("=== データの作成を開始 ===")
-    data_loader = DataLoader(data_dir="Data_Label/Gym")  # Gymデータセットを使用
+    data_loader = DataLoader(data_dir="Data_Label/Gym_Ueda")  # Gymデータセットを使用
     print("Data_Label/Gym")
     x_data, y_label = data_loader.load_data()
 
