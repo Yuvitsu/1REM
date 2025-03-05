@@ -60,7 +60,8 @@ def build_conv_gru(input_shape):
 # --- メイン処理 ---
 if __name__ == "__main__":
     print("=== データの読み込み開始 ===")
-    data_loader = DataLoader(data_dir="Data_Label/Gym")  # ✅ Gym データセットを使用
+    data_loader = DataLoader(data_dir="Data_Label/Gym_Ueda")  # ✅ Gym データセットを使用
+    print("Gym_Ueda Dataset")
     x_data, y_label = data_loader.load_data()
 
     # ✅ 入力データとラベルの最小・最大値を取得（正規化のため）
