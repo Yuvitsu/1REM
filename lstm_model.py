@@ -77,7 +77,8 @@ def build_lstm(input_shape, learning_rate, l2_lambda=0.01):
 # --- メイン処理 ---
 if __name__ == "__main__":
     print("=== データの作成を開始 ===")
-    data_loader = DataLoader(data_dir="Data_Label/E420")
+    data_loader = DataLoader(data_dir="Data_Label/Gym")
+    print("Data_Label/Gym")
     x_data, y_label = data_loader.load_data()
 
     batch_size = 64
