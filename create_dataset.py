@@ -48,6 +48,9 @@ class DataProcessor:
 
             self.x_test = self.apply_minmax(x_data[test_indices], self.x_min, self.x_max)
             self.y_test = self.apply_minmax(y_label[test_indices], self.y_min, self.y_max)
+            print("train",self.x_train.shape)
+            print("train",self.x_val.shape)
+            print("train",self.x_test.shape)
 
         elif normalization_method == "zscore":
             self.x_train, self.x_mean, self.x_std = self.zscore_normalize(x_train)
