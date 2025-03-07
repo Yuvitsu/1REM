@@ -114,10 +114,10 @@ if __name__ == "__main__":
     models = ["LSTM", "Transformer"]
 
 
-    for model in models:
-        evaluator = ModelResultEvaluator(
-            model_name=model,
-            predictions_path=f"test_results//{model}_results/test_predictions.npy",
-            true_values_path=f"test_results//{model}_results/test_true_values.npy"
-        )
-        evaluator.evaluate()
+for model in models:
+    evaluator = ModelResultEvaluator(
+        model_name=model,
+        predictions_path=f"test_results//{model}_results/test_predictions.npy",
+        true_values_path=f"test_results//{model}_results/test_true_values.npy"
+    )
+    evaluator.evaluate()
