@@ -5,7 +5,7 @@ from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from loss_logger import LossLogger
-from test_result_save import TestResultSaver
+from test_result_save import TestResultSaver  # ✅ 追加
 from training_logger import TrainingLogger
 import numpy as np
 
@@ -133,4 +133,10 @@ if __name__ == "__main__":
     print("=== モデルの保存 ===")
     transformer.save("transformer_model", save_format="tf")
 
-    print("=== 学習ログが 'test_results/Transformer_results' に保存されました ===")
+    # ✅ ここで `TestResultSaver` を使用して予測結果を保存
+    print("=== モデルの予測と保存を開始 ===")
+    test_saver = TestResultSaver(save_dir=save_dir)  # ✅ インスタンス作成
+    test_saver.save_results(test_dataset, transformer, y_min, y_max)  # ✅ 結果を保存
+
+    loss_logger.save_test_loss(test_loss)
+    print(f"=== 学習ログが '{save_dir}' に保存されました ===")
