@@ -119,7 +119,7 @@ if __name__ == "__main__":
             evaluator = ModelResultEvaluator(
                 dataset_name=dataset,
                 model_name=model,
-                predictions_path=f"test_results/{model}_test_results/test_predictions.npy",
-                true_values_path=f"test_results/{model}_test_results/test_true_values.npy"
+                predictions_path=f"test_results/{model}_results/test_predictions.npy",
+                true_values_path=f"test_results/{model}_results/test_true_values.npy"
             )
             evaluator.evaluate()
