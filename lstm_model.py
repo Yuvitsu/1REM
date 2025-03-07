@@ -1,5 +1,5 @@
 """
-L2使ってみました
+L2 なしの LSTM モデル
 """
 
 import os
@@ -8,7 +8,7 @@ import logging
 import warnings
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, regularizers
+from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from loss_logger import LossLogger
@@ -17,52 +17,47 @@ from training_logger import TrainingLogger
 import numpy as np
 
 # ✅ TensorFlow のデバッグ情報を完全に抑制
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'  # TensorFlow のログレベルを ERROR のみに設定
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 tf.get_logger().setLevel('ERROR')
-warnings.filterwarnings("ignore")  # Python レベルの警告を無効化
+warnings.filterwarnings("ignore")
 logging.getLogger('tensorflow').setLevel(logging.ERROR)
-tf.debugging.set_log_device_placement(False)  # デバイス配置ログを抑制
+tf.debugging.set_log_device_placement(False)
 
 # ✅ 保存先ディレクトリを統一
-save_dir = "test_results/LSTM_results"
-model_save_path = "lstm_model"
+save_dir = "test_results/LSTM_results_no_L2"
+model_save_path = "lstm_model_no_L2"
 epochs = 50  # ✅ エポック数を変数化
 
 # ✅ LossLogger のインスタンスを作成（保存パスを指定）
-loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
+loss_logger = LossLogger(model_name="lstm_model_no_L2", save_dir=save_dir)
 
 # --- LSTM モデルの構築 ---
-def build_lstm(input_shape, learning_rate, l2_lambda=0.01):
+def build_lstm(input_shape, learning_rate):
     """
-    LSTMモデルを構築する
-    - L2正則化をLSTM層とDense層に適用
+    LSTMモデルを構築する（L2 正則化なし）
     """
     inputs = keras.Input(shape=input_shape)
 
     x = layers.LSTM(
         128, return_sequences=True, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3,
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
+        dropout=0.3, recurrent_dropout=0.3
     )(inputs)
     x = layers.BatchNormalization()(x)
 
     x = layers.LSTM(
         128, return_sequences=True, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3,
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
+        dropout=0.3, recurrent_dropout=0.3
     )(x)
     x = layers.BatchNormalization()(x)
 
     x = layers.LSTM(
         128, return_sequences=False, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3,
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
+        dropout=0.3, recurrent_dropout=0.3
     )(x)
     x = layers.BatchNormalization()(x)
 
     x = layers.Dense(
-        6, activation="linear",
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
+        6, activation="linear"
     )(x)
     x = layers.BatchNormalization()(x)
 
@@ -92,12 +87,12 @@ if __name__ == "__main__":
 
     print("=== LSTM モデルの構築 ===")
     # ✅ `learning_rate` を渡して LSTM の学習率を設定
-    lstm_model, optimizer = build_lstm(sample_input_shape, learning_rate, l2_lambda=0.01)
+    lstm_model, optimizer = build_lstm(sample_input_shape, learning_rate)
 
     # ✅ モデルを明示的に `build()` し、ダミーデータを通す
     lstm_model.build(input_shape=(None,) + sample_input_shape)
-    dummy_input = np.zeros((1, 10, 6), dtype=np.float32)  # ✅ すべてゼロのダミーデータ
-    lstm_model.predict(dummy_input)  # ✅ `predict()` で推論実行し `output_shape` を確定
+    dummy_input = np.zeros((1, 10, 6), dtype=np.float32)
+    lstm_model.predict(dummy_input)
 
     # ✅ `model.summary()` を実行して確実に `output_shape` を確定
     lstm_model.summary()
@@ -113,7 +108,7 @@ if __name__ == "__main__":
     lstm_model.fit(
         train_dataset,
         validation_data=val_dataset,
-        epochs=epochs,  # ✅ 変数を使う
+        epochs=epochs,
         callbacks=[loss_logger]
     )
 
