@@ -40,19 +40,19 @@ def build_lstm(input_shape, learning_rate):
 
     x = layers.LSTM(
         128, return_sequences=True, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3
+        dropout=0.3, recurrent_dropout=0.2
     )(inputs)
     x = layers.BatchNormalization()(x)
 
     x = layers.LSTM(
         128, return_sequences=True, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3
+        dropout=0.3, recurrent_dropout=0.2
     )(x)
     x = layers.BatchNormalization()(x)
 
     x = layers.LSTM(
         128, return_sequences=False, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3
+        dropout=0.3, recurrent_dropout=0.2
     )(x)
     x = layers.BatchNormalization()(x)
 
