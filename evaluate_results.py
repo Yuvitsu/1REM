@@ -111,11 +111,15 @@ class ModelResultEvaluator:
 
 # --- メイン処理 ---
 if __name__ == "__main__":
+    datasets = ["E420"]
     models = ["LSTM", "Transformer"]
-    for model in models:
-        evaluator = ModelResultEvaluator(
-            model_name=model,
-            predictions_path=f"test_results//{model}_results/test_predictions.npy",
-            true_values_path=f"test_results//{model}_results/test_true_values.npy"
-        )
-        evaluator.evaluate()
+
+    for dataset in datasets:
+        for model in models:
+            evaluator = ModelResultEvaluator(
+                dataset_name=dataset,
+                model_name=model,
+                predictions_path=f"test_results/{model}_test_results/test_predictions.npy",
+                true_values_path=f"test_results/{model}_test_results/test_true_values.npy"
+            )
+            evaluator.evaluate()
