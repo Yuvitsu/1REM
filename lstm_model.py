@@ -1,14 +1,10 @@
-"""
-L2使ってみました
-"""
-
 import os
 import sys
 import logging
 import warnings
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers, regularizers
+from tensorflow.keras import layers
 from load_data_label import DataLoader
 from create_dataset import DataProcessor
 from loss_logger import LossLogger
@@ -32,39 +28,23 @@ epochs = 50  # ✅ エポック数を変数化
 loss_logger = LossLogger(model_name="lstm_model", save_dir=save_dir)
 
 # --- LSTM モデルの構築 ---
-def build_lstm(input_shape, learning_rate, l2_lambda=0.01):
-    """
-    LSTMモデルを構築する
-    - L2正則化をLSTM層とDense層に適用
-    """
+def build_lstm(input_shape, learning_rate):
     inputs = keras.Input(shape=input_shape)
 
-    x = layers.LSTM(
-        128, return_sequences=True, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3,
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
-    )(inputs)
-    x = layers.BatchNormalization()(x)
+    x = layers.LSTM(128, return_sequences=True, activation="tanh",
+                    dropout=0.3, recurrent_dropout=0.3)(inputs)
+    x = layers.BatchNormalization()(x)  # ✅ LSTM 層の出力にバッチ正規化を適用
 
-    x = layers.LSTM(
-        128, return_sequences=True, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3,
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
-    )(x)
-    x = layers.BatchNormalization()(x)
+    x = layers.LSTM(128, return_sequences=True, activation="tanh",
+                    dropout=0.3, recurrent_dropout=0.3)(x)
+    x = layers.BatchNormalization()(x)  # ✅ 2層目の LSTM の出力にも適用
 
-    x = layers.LSTM(
-        128, return_sequences=False, activation="tanh",
-        dropout=0.3, recurrent_dropout=0.3,
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
-    )(x)
-    x = layers.BatchNormalization()(x)
+    x = layers.LSTM(128, return_sequences=False, activation="tanh",
+                    dropout=0.3, recurrent_dropout=0.3)(x)
+    x = layers.BatchNormalization()(x)  # ✅ 最終 LSTM 層の後にも適用
 
-    x = layers.Dense(
-        6, activation="linear",
-        kernel_regularizer=regularizers.l2(l2_lambda)  # ✅ L2正則化追加
-    )(x)
-    x = layers.BatchNormalization()(x)
+    x = layers.Dense(6, activation="linear")(x)  # 出力層
+    x = layers.BatchNormalization()(x)  # ✅ 出力層の前にも適用
 
     model = keras.Model(inputs, x)
 
@@ -91,7 +71,7 @@ if __name__ == "__main__":
 
     print("=== LSTM モデルの構築 ===")
     # ✅ `learning_rate` を渡して LSTM の学習率を設定
-    lstm_model, optimizer = build_lstm(sample_input_shape, learning_rate, l2_lambda=0.01)
+    lstm_model, optimizer = build_lstm(sample_input_shape, learning_rate)
 
     # ✅ モデルを明示的に `build()` し、ダミーデータを通す
     lstm_model.build(input_shape=(None,) + sample_input_shape)
